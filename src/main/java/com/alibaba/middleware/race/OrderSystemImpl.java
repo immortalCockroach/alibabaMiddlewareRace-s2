@@ -6,7 +6,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -14,8 +13,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
 /**
  * 订单系统的demo实现，订单数据全部存放在内存中，用简单的方式实现数据存储和查询功能
@@ -28,13 +25,13 @@ public class OrderSystemImpl implements OrderSystem {
 	static private String booleanTrueValue = "true";
 	static private String booleanFalseValue = "false";
 
-	final List<String> comparableKeysOrderingByOrderId;
-
-	final List<String> comparableKeysOrderingByBuyerCreateTimeOrderId;
-	final List<String> comparableKeysOrderingBySalerGoodOrderId;
-	final List<String> comparableKeysOrderingByGood;
-	final List<String> comparableKeysOrderingByGoodOrderId;
-	final List<String> comparableKeysOrderingByBuyer;
+//	final List<String> comparableKeysOrderingByOrderId;
+//
+//	final List<String> comparableKeysOrderingByBuyerCreateTimeOrderId;
+//	final List<String> comparableKeysOrderingBySalerGoodOrderId;
+//	final List<String> comparableKeysOrderingByGood;
+//	final List<String> comparableKeysOrderingByGoodOrderId;
+//	final List<String> comparableKeysOrderingByBuyer;
 
 	private Collection<String> orderFiles;
 	private Collection<String> goodFiles;
@@ -263,50 +260,50 @@ public class OrderSystemImpl implements OrderSystem {
 	/**
 	 * order表的四种组织方式 针对4中查询
 	 */
-	// 查询1
-	TreeMap<ComparableKeys, Row> orderDataSortedByOrder = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
-	// 查询2
-	TreeMap<ComparableKeys, Row> orderDataSortedByBuyerCreateTime = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
-	// 查询3
-	TreeMap<ComparableKeys, Row> orderDataSortedBySalerGood = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
-	// 查询4
-	TreeMap<ComparableKeys, Row> orderDataSortedByGood = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
-
-	/**
-	 * 买家和商品表的组织方式 用于查询的group
-	 */
-	// 买家信息表（按buyerId排序）
-	TreeMap<ComparableKeys, Row> buyerDataStoredByBuyer = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
-	// 商品信息表（按goodId排序）
-	TreeMap<ComparableKeys, Row> goodDataStoredByGood = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
+//	// 查询1
+//	TreeMap<ComparableKeys, Row> orderDataSortedByOrder = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
+//	// 查询2
+//	TreeMap<ComparableKeys, Row> orderDataSortedByBuyerCreateTime = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
+//	// 查询3
+//	TreeMap<ComparableKeys, Row> orderDataSortedBySalerGood = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
+//	// 查询4
+//	TreeMap<ComparableKeys, Row> orderDataSortedByGood = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
+//
+//	/**
+//	 * 买家和商品表的组织方式 用于查询的group
+//	 */
+//	// 买家信息表（按buyerId排序）
+//	TreeMap<ComparableKeys, Row> buyerDataStoredByBuyer = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
+//	// 商品信息表（按goodId排序）
+//	TreeMap<ComparableKeys, Row> goodDataStoredByGood = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
 
 	public OrderSystemImpl() {
-		comparableKeysOrderingByOrderId = new ArrayList<String>();
-		comparableKeysOrderingByBuyerCreateTimeOrderId = new ArrayList<String>();
-		comparableKeysOrderingBySalerGoodOrderId = new ArrayList<String>();
-		comparableKeysOrderingByGood = new ArrayList<String>();
-		comparableKeysOrderingByGoodOrderId = new ArrayList<String>();
-		comparableKeysOrderingByBuyer = new ArrayList<String>();
-		// 查询1
-		comparableKeysOrderingByOrderId.add("orderid");
-
-		// 查询2
-		comparableKeysOrderingByBuyerCreateTimeOrderId.add("buyerid");
-		comparableKeysOrderingByBuyerCreateTimeOrderId.add("createtime");
-		comparableKeysOrderingByBuyerCreateTimeOrderId.add("orderid");
-
-		// 查询3
-		comparableKeysOrderingBySalerGoodOrderId.add("salerid");
-		comparableKeysOrderingBySalerGoodOrderId.add("goodid");
-		comparableKeysOrderingBySalerGoodOrderId.add("orderid");
-
-		// 查询4
-		comparableKeysOrderingByGoodOrderId.add("goodid");
-		comparableKeysOrderingByGoodOrderId.add("orderid");
-
-		comparableKeysOrderingByGood.add("goodid");
-
-		comparableKeysOrderingByBuyer.add("buyerid");
+//		comparableKeysOrderingByOrderId = new ArrayList<String>();
+//		comparableKeysOrderingByBuyerCreateTimeOrderId = new ArrayList<String>();
+//		comparableKeysOrderingBySalerGoodOrderId = new ArrayList<String>();
+//		comparableKeysOrderingByGood = new ArrayList<String>();
+//		comparableKeysOrderingByGoodOrderId = new ArrayList<String>();
+//		comparableKeysOrderingByBuyer = new ArrayList<String>();
+//		// 查询1
+//		comparableKeysOrderingByOrderId.add("orderid");
+//
+//		// 查询2
+//		comparableKeysOrderingByBuyerCreateTimeOrderId.add("buyerid");
+//		comparableKeysOrderingByBuyerCreateTimeOrderId.add("createtime");
+//		comparableKeysOrderingByBuyerCreateTimeOrderId.add("orderid");
+//
+//		// 查询3
+//		comparableKeysOrderingBySalerGoodOrderId.add("salerid");
+//		comparableKeysOrderingBySalerGoodOrderId.add("goodid");
+//		comparableKeysOrderingBySalerGoodOrderId.add("orderid");
+//
+//		// 查询4
+//		comparableKeysOrderingByGoodOrderId.add("goodid");
+//		comparableKeysOrderingByGoodOrderId.add("orderid");
+//
+//		comparableKeysOrderingByGood.add("goodid");
+//
+//		comparableKeysOrderingByBuyer.add("buyerid");
 
 	}
 
@@ -443,40 +440,40 @@ public class OrderSystemImpl implements OrderSystem {
 		this.buyerFiles = buyerFiles;
 		this.goodFiles = goodFiles;
 		// Handling goodFiles
-		new DataFileHandler() {
-			@Override
-			void handleRow(Row row) {
-				goodDataStoredByGood.put(new ComparableKeys(comparableKeysOrderingByGood, row), row);
-			}
-		}.handle(goodFiles);
-
-		// Handling orderFiles
-		new DataFileHandler() {
-			@Override
-			void handleRow(Row row) {
-				KV goodid = row.getKV("goodid");
-				Row goodData = goodDataStoredByGood.get(new ComparableKeys(comparableKeysOrderingByGood, row));
-				if (goodData == null) {
-					throw new RuntimeException("Bad data! goodid " + goodid.rawValue + " not exist in good files");
-				}
-				KV salerid = goodData.get("salerid");
-				row.put("salerid", salerid);
-
-				orderDataSortedByOrder.put(new ComparableKeys(comparableKeysOrderingByOrderId, row), row);
-				orderDataSortedByBuyerCreateTime
-						.put(new ComparableKeys(comparableKeysOrderingByBuyerCreateTimeOrderId, row), row);
-				orderDataSortedBySalerGood.put(new ComparableKeys(comparableKeysOrderingBySalerGoodOrderId, row), row);
-				orderDataSortedByGood.put(new ComparableKeys(comparableKeysOrderingByGoodOrderId, row), row);
-			}
-		}.handle(orderFiles);
-
-		// Handling buyerFiles
-		new DataFileHandler() {
-			@Override
-			void handleRow(Row row) {
-				buyerDataStoredByBuyer.put(new ComparableKeys(comparableKeysOrderingByBuyer, row), row);
-			}
-		}.handle(buyerFiles);
+//		new DataFileHandler() {
+//			@Override
+//			void handleRow(Row row) {
+//				goodDataStoredByGood.put(new ComparableKeys(comparableKeysOrderingByGood, row), row);
+//			}
+//		}.handle(goodFiles);
+//
+//		// Handling orderFiles
+//		new DataFileHandler() {
+//			@Override
+//			void handleRow(Row row) {
+//				KV goodid = row.getKV("goodid");
+//				Row goodData = goodDataStoredByGood.get(new ComparableKeys(comparableKeysOrderingByGood, row));
+//				if (goodData == null) {
+//					throw new RuntimeException("Bad data! goodid " + goodid.rawValue + " not exist in good files");
+//				}
+//				KV salerid = goodData.get("salerid");
+//				row.put("salerid", salerid);
+//
+//				orderDataSortedByOrder.put(new ComparableKeys(comparableKeysOrderingByOrderId, row), row);
+//				orderDataSortedByBuyerCreateTime
+//						.put(new ComparableKeys(comparableKeysOrderingByBuyerCreateTimeOrderId, row), row);
+//				orderDataSortedBySalerGood.put(new ComparableKeys(comparableKeysOrderingBySalerGoodOrderId, row), row);
+//				orderDataSortedByGood.put(new ComparableKeys(comparableKeysOrderingByGoodOrderId, row), row);
+//			}
+//		}.handle(orderFiles);
+//
+//		// Handling buyerFiles
+//		new DataFileHandler() {
+//			@Override
+//			void handleRow(Row row) {
+//				buyerDataStoredByBuyer.put(new ComparableKeys(comparableKeysOrderingByBuyer, row), row);
+//			}
+//		}.handle(buyerFiles);
 	}
 
 	public Result queryOrder(long orderId, Collection<String> keys) {
