@@ -3,3 +3,4 @@ target/
 .project
 .settings/
 src/test
+*.txt
