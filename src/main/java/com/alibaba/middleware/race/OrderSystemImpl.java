@@ -1,9 +1,11 @@
 package com.alibaba.middleware.race;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,6 +18,7 @@ import java.util.PriorityQueue;
 import java.util.Set;
 
 import com.alibaba.middleware.race.utils.CommonConstants;
+import com.alibaba.middleware.race.utils.IOUtils;
 
 /**
  * 订单系统的demo实现，订单数据全部存放在内存中，用简单的方式实现数据存储和查询功能
@@ -27,15 +30,7 @@ public class OrderSystemImpl implements OrderSystem {
 
 	static private String booleanTrueValue = "true";
 	static private String booleanFalseValue = "false";
-
-//	final List<String> comparableKeysOrderingByOrderId;
-//
-//	final List<String> comparableKeysOrderingByBuyerCreateTimeOrderId;
-//	final List<String> comparableKeysOrderingBySalerGoodOrderId;
-//	final List<String> comparableKeysOrderingByGood;
-//	final List<String> comparableKeysOrderingByGoodOrderId;
-//	final List<String> comparableKeysOrderingByBuyer;
-
+	
 	private Collection<String> orderFiles;
 	private Collection<String> goodFiles;
 	private Collection<String> buyerFiles;
@@ -47,6 +42,14 @@ public class OrderSystemImpl implements OrderSystem {
 	
 	private String buyersPath;
 	private String goodsPath;
+	
+	private BufferedWriter[] query1Writers;
+	private BufferedWriter[] query2Writers;
+	private BufferedWriter[] query3Writers;
+	private BufferedWriter[] query4Writers;
+	
+	private BufferedWriter[] buyersWriters;
+	private BufferedWriter[] goodsWriters;
 	
 
 	/**
@@ -143,6 +146,11 @@ public class OrderSystemImpl implements OrderSystem {
 			if (kv == null) {
 				throw new RuntimeException(key + " is not exist");
 			}
+			return kv;
+		}
+		
+		KV removeKV(String key){
+			KV kv = this.remove(key);
 			return kv;
 		}
 
@@ -289,6 +297,7 @@ public class OrderSystemImpl implements OrderSystem {
 		goodFiles.add("good_records.txt");
 		storeFolders.add("./");
 
+		storeFolders.add("./data");
 		OrderSystem os = new OrderSystemImpl();
 		os.construct(orderFiles, buyerFiles, goodFiles, storeFolders);
 
@@ -356,9 +365,7 @@ public class OrderSystemImpl implements OrderSystem {
 		}
 	}
 
-	private BufferedReader createReader(String file) throws FileNotFoundException {
-		return new BufferedReader(new FileReader(file), CommonConstants.BLOCK_SIZE);
-	}
+
 
 	/**
 	 * 将一行的数据按照"\t"分割并使用":"构建成map
@@ -387,7 +394,7 @@ public class OrderSystemImpl implements OrderSystem {
 
 		void handle(Collection<String> files) throws IOException {
 			for (String file : files) {
-				BufferedReader bfr = createReader(file);
+				BufferedReader bfr = IOUtils.createReader(file);
 				try {
 					String line = bfr.readLine();
 					while (line != null) {
@@ -409,56 +416,141 @@ public class OrderSystemImpl implements OrderSystem {
 		this.buyerFiles = buyerFiles;
 		this.goodFiles = goodFiles;
 		constructDir(storeFolders);
-		constructReaderForIndexFile();
+		constructWriterForIndexFile();
+		constructHashIndex();
+		closeWriter();
+		
+
+	}
+	private void constructHashIndex() {
 
 	}
 	
-	private void constructReaderForIndexFile() {
-		
+	private int hashWithDistrub(Object k) {
+	        int h = 0;
+	        h ^= k.hashCode();
+
+	        // This function ensures that hashCodes that differ only by
+	        // constant multiples at each bit position have a bounded
+	        // number of collisions (approximately 8 at default load factor).
+	        h ^= (h >>> 20) ^ (h >>> 12);
+	        return h ^ (h >>> 7) ^ (h >>> 4);
+	    
 	}
 	
+	private int indexFor(int hashCode,int length) {
+		return hashCode & (length - 1);
+	}
+	/**
+	 * 创建构造索引的writer
+	 */
+	private void constructWriterForIndexFile() {
+		// 创建4种查询的4中索引文件和买家 商品信息的writer
+		this.query1Writers = new BufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
+		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
+			try {
+				query1Writers[i] = IOUtils.createWriter(this.query1Path + File.separator + i);
+			} catch (IOException e) {
+
+			}
+		}
+		this.query2Writers = new BufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
+		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
+			try {
+				query2Writers[i] = IOUtils.createWriter(this.query2Path + File.separator + i);
+			} catch (IOException e) {
+
+			}
+		}
+		this.query3Writers = new BufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
+		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
+			try {
+				query3Writers[i] = IOUtils.createWriter(this.query3Path + File.separator + i);
+			} catch (IOException e) {
+
+			}
+		}
+
+		this.query4Writers = new BufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
+		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
+			try {
+				query4Writers[i] = IOUtils.createWriter(this.query4Path + File.separator + i);
+			} catch (IOException e) {
+
+			}
+		}
+		
+		this.buyersWriters = new BufferedWriter[CommonConstants.OTHER_SPLIT_SIZE];
+		for (int i = 0; i < CommonConstants.OTHER_SPLIT_SIZE; i++) {
+			try {
+				buyersWriters[i] = IOUtils.createWriter(this.buyersPath + File.separator + i);
+			} catch (IOException e) {
+
+			}
+		}
+		
+		this.goodsWriters = new BufferedWriter[CommonConstants.OTHER_SPLIT_SIZE];
+		for (int i = 0; i < CommonConstants.OTHER_SPLIT_SIZE; i++) {
+			try {
+				goodsWriters[i] = IOUtils.createWriter(this.goodsPath + File.separator + i);
+			} catch (IOException e) {
+
+			}
+		}
+
+	}
+	
+	/**
+	 * 索引创建目录
+	 * @param storeFolders
+	 */
 	private void constructDir(Collection<String> storeFolders) {
 		List<String> storeFoldersList = new ArrayList<>(storeFolders);
 		
 		// 4种查询的4种索引文件和买家、商品信息平均分到不同的路径上
 		int len = storeFoldersList.size();
 		int storeIndex = 0;
-		
+
 		this.query1Path = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.QUERY1_PREFIX;
 		File query1File = new File(query1Path);
 		if (!query1File.exists()) {
 			query1File.mkdirs();
 		}
-		storeIndex = (storeIndex++) % len;
-		
+		storeIndex++;
+		storeIndex %= len;
+
 		this.query2Path = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.QUERY2_PREFIX;
 		File query2File = new File(query2Path);
 		if (!query2File.exists()) {
 			query2File.mkdirs();
 		}
-		storeIndex = (storeIndex++) % len;
-		
+		storeIndex++;
+		storeIndex %= len;
+
 		this.query3Path = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.QUERY3_PREFIX;
 		File query3File = new File(query3Path);
 		if (!query3File.exists()) {
 			query3File.mkdirs();
 		}
-		storeIndex = (storeIndex++) % len;
-		
+		storeIndex++;
+		storeIndex %= len;
+
 		this.query4Path = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.QUERY4_PREFIX;
 		File query4File = new File(query4Path);
 		if (!query4File.exists()) {
 			query4File.mkdirs();
 		}
-		storeIndex = (storeIndex++) % len;
-		
+		storeIndex++;
+		storeIndex %= len;
+		System.out.println(storeFoldersList.get(storeIndex)+",index:"+storeIndex);
 		this.buyersPath = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.BUYERS_PREFIX;
 		File buyersFile = new File(buyersPath);
 		if (!buyersFile.exists()) {
 			buyersFile.mkdirs();
 		}
-		storeIndex = (storeIndex++) % len;
-		
+		storeIndex++;
+		storeIndex %= len;
+		System.out.println(storeFoldersList.get(storeIndex)+",index:"+storeIndex);
 		this.goodsPath = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.GOODS_PREFIX;
 		File goodsFile = new File(goodsPath);
 		if (!goodsFile.exists()) {
@@ -478,7 +570,7 @@ public class OrderSystemImpl implements OrderSystem {
 		Row orderData = null;
 		boolean find = false;
 		for (String orderFile : this.orderFiles) {
-			try (BufferedReader reader = createReader(orderFile)) {
+			try (BufferedReader reader = IOUtils.createReader(orderFile)) {
 				String line = reader.readLine();
 				while (line != null) {
 					Row kvMap = createKVMapFromLine(line);
@@ -503,6 +595,34 @@ public class OrderSystemImpl implements OrderSystem {
 
 		return createResultFromOrderData(orderData, createQueryKeys(keys));
 	}
+	
+	private void closeWriter() {
+		try {
+			for (BufferedWriter bw : query1Writers) {
+				bw.close();
+			}
+			for (BufferedWriter bw : query2Writers) {
+				bw.close();
+			}
+			for (BufferedWriter bw : query3Writers) {
+				bw.close();
+			}
+			for (BufferedWriter bw : query4Writers) {
+				bw.close();
+			}
+			
+			for (BufferedWriter bw : buyersWriters) {
+				bw.close();
+			}
+			
+			for (BufferedWriter bw : goodsWriters) {
+				bw.close();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 
 	/**
 	 * join操作，根据order订单中的buyerid和goodid进行join
@@ -518,7 +638,7 @@ public class OrderSystemImpl implements OrderSystem {
 		Row buyerData = null;
 		boolean find = false;
 		for (String buyerFile : this.buyerFiles) {
-			try (BufferedReader reader = createReader(buyerFile)) {
+			try (BufferedReader reader = IOUtils.createReader(buyerFile)) {
 				String line = reader.readLine();
 				while (line != null) {
 					Row kvMap = createKVMapFromLine(line);
@@ -544,7 +664,7 @@ public class OrderSystemImpl implements OrderSystem {
 		Row goodData = null;
 		find = false;
 		for (String goodFile : this.goodFiles) {
-			try (BufferedReader reader = createReader(goodFile)) {
+			try (BufferedReader reader = IOUtils.createReader(goodFile)) {
 				String line = reader.readLine();
 				while (line != null) {
 					Row kvMap = createKVMapFromLine(line);
@@ -589,7 +709,7 @@ public class OrderSystemImpl implements OrderSystem {
 
 		});
 		for (String orderFile : this.orderFiles) {
-			try (BufferedReader reader = createReader(orderFile)) {
+			try (BufferedReader reader = IOUtils.createReader(orderFile)) {
 				String line = reader.readLine();
 				while (line != null) {
 					Row kvMap = createKVMapFromLine(line);
@@ -646,7 +766,7 @@ public class OrderSystemImpl implements OrderSystem {
 
 		});
 		for (String orderFile : this.orderFiles) {
-			try (BufferedReader reader = createReader(orderFile)) {
+			try (BufferedReader reader = IOUtils.createReader(orderFile)) {
 				String line = reader.readLine();
 				while (line != null) {
 					Row kvMap = createKVMapFromLine(line);
@@ -687,7 +807,7 @@ public class OrderSystemImpl implements OrderSystem {
 	public KeyValue sumOrdersByGood(String goodid, String key) {
 		List<Row> ordersData = new ArrayList<>(1000);
 		for (String orderFile : this.orderFiles) {
-			try (BufferedReader reader = createReader(orderFile)) {
+			try (BufferedReader reader = IOUtils.createReader(orderFile)) {
 				String line = reader.readLine();
 				while (line != null) {
 					Row kvMap = createKVMapFromLine(line);

@@ -7,7 +7,9 @@ public class CommonConstants {
 	public static final String NEW_LINE = System.getProperty("line.separator");
 	
 	// order文件被切割的分数 保持2^n
-	public static final int SPLIT_SIZE = 16;
+	public static final int ORDER_SPLIT_SIZE = 16;
+	
+	public static final int OTHER_SPLIT_SIZE = 4;
 	
 	public static final String QUERY1_PREFIX = "query1";
 	public static final String QUERY2_PREFIX = "query2";
