@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
 
+import com.alibaba.middleware.race.utils.CommonConstants;
+
 /**
  * 订单系统的demo实现，订单数据全部存放在内存中，用简单的方式实现数据存储和查询功能
  * 
@@ -388,7 +390,7 @@ public class OrderSystemImpl implements OrderSystem {
 	}
 
 	private BufferedReader createReader(String file) throws FileNotFoundException {
-		return new BufferedReader(new FileReader(file), 1024 * 1024);
+		return new BufferedReader(new FileReader(file), CommonConstants.BLOCK_SIZE);
 	}
 
 	/**
