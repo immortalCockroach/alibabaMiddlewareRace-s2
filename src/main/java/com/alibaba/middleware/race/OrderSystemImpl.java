@@ -347,28 +347,29 @@ public class OrderSystemImpl implements OrderSystem {
 		os.construct(orderFiles, buyerFiles, goodFiles, storeFolders);
 
 		// 用例
-//		 long orderid = 2982388;
-//		 System.out.println("\n查询订单号为" + orderid + "的订单");
-//		 System.out.println(os.queryOrder(orderid, null));
-//		
-//		 System.out.println("\n查询订单号为" + orderid +
-//		 "的订单，查询的keys为空，返回订单，但没有kv数据");
-//		 System.out.println(os.queryOrder(orderid, new ArrayList<String>()));
-//		
-//		 System.out.println("\n查询订单号为" + orderid + "的订单的contactphone, buyerid,foo, done, price字段");
-//		 List<String> queryingKeys = new ArrayList<String>();
-//		 queryingKeys.add("contactphone");
-//		 queryingKeys.add("buyerid");
-//		 queryingKeys.add("foo");
-//		 queryingKeys.add("done");
-//		 queryingKeys.add("price");
-//		 Result result = os.queryOrder(orderid, queryingKeys);
-//		 System.out.println(result);
-//		 System.out.println("\n查询订单号不存在的订单");
-//		 result = os.queryOrder(1111, queryingKeys);
-//		 if (result == null) {
-//		 System.out.println(1111 + " order not exist");
-//		 }
+		long start = System.currentTimeMillis();
+		long orderid = 2982388;
+		System.out.println("\n查询订单号为" + orderid + "的订单");
+		System.out.println(os.queryOrder(orderid, null));
+
+		System.out.println("\n查询订单号为" + orderid + "的订单，查询的keys为空，返回订单，但没有kv数据");
+		System.out.println(os.queryOrder(orderid, new ArrayList<String>()));
+
+		System.out.println("\n查询订单号为" + orderid + "的订单的contactphone, buyerid,foo, done, price字段");
+		List<String> queryingKeys = new ArrayList<String>();
+		queryingKeys.add("contactphone");
+		queryingKeys.add("buyerid");
+		queryingKeys.add("foo");
+		queryingKeys.add("done");
+		queryingKeys.add("price");
+		Result result = os.queryOrder(orderid, queryingKeys);
+		System.out.println(result);
+		System.out.println("\n查询订单号不存在的订单");
+		result = os.queryOrder(1111, queryingKeys);
+		if (result == null) {
+			System.out.println(1111 + " order not exist");
+		}
+		System.out.println(System.currentTimeMillis() - start);
 //		long start = System.currentTimeMillis();
 //		String buyerid = "tb_a99a7956-974d-459f-bb09-b7df63ed3b80";
 //		long startTime = 1471025622;
@@ -390,24 +391,24 @@ public class OrderSystemImpl implements OrderSystem {
 //			System.out.println(it.next());
 //		}
 		//
-		String goodid = "good_d191eeeb-fed1-4334-9c77-3ee6d6d66aff";
-		String attr = "app_order_33_0";
-		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
-		System.out.println(os.sumOrdersByGood(goodid, attr));
-
-		attr = "done";
-		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
-		KeyValue sum = os.sumOrdersByGood(goodid, attr);
-		if (sum == null) {
-			System.out.println("由于该字段是布尔类型，返回值是null");
-		}
-
-		attr = "foo";
-		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
-		sum = os.sumOrdersByGood(goodid, attr);
-		if (sum == null) {
-			System.out.println("由于该字段不存在，返回值是null");
-		}
+//		String goodid = "good_d191eeeb-fed1-4334-9c77-3ee6d6d66aff";
+//		String attr = "app_order_33_0";
+//		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
+//		System.out.println(os.sumOrdersByGood(goodid, attr));
+//
+//		attr = "done";
+//		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
+//		KeyValue sum = os.sumOrdersByGood(goodid, attr);
+//		if (sum == null) {
+//			System.out.println("由于该字段是布尔类型，返回值是null");
+//		}
+//
+//		attr = "foo";
+//		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
+//		sum = os.sumOrdersByGood(goodid, attr);
+//		if (sum == null) {
+//			System.out.println("由于该字段不存在，返回值是null");
+//		}
 	}
 
 
@@ -456,7 +457,7 @@ public class OrderSystemImpl implements OrderSystem {
 
 	public void construct(Collection<String> orderFiles, Collection<String> buyerFiles, Collection<String> goodFiles,
 			Collection<String> storeFolders) throws IOException, InterruptedException {
-
+		long start = System.currentTimeMillis();
 		this.orderFiles = orderFiles;
 		this.buyerFiles = buyerFiles;
 		this.goodFiles = goodFiles;
@@ -464,12 +465,13 @@ public class OrderSystemImpl implements OrderSystem {
 		constructWriterForIndexFile();
 		constructHashIndex();
 		closeWriter();
+		System.out.println("construct time:"+(System.currentTimeMillis()-start));
 		
 
 	}
 	private void constructHashIndex() {
-		// 6个线程各自完成之后 该函数才能返回
-		CountDownLatch latch = new CountDownLatch(6);
+		// 5个线程各自完成之后 该函数才能返回
+		CountDownLatch latch = new CountDownLatch(5);
 		new Thread(new HashIndexCreator("orderid", query1Writers, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
 		new Thread(new HashIndexCreator("buyerid", query2Writers, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
 		new Thread(new HashIndexCreator("goodid", query3Writers, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
@@ -626,26 +628,22 @@ public class OrderSystemImpl implements OrderSystem {
 		// return null;
 		// }
 		Row orderData = null;
-		boolean find = false;
-		for (String orderFile : this.orderFiles) {
-			try (BufferedReader reader = IOUtils.createReader(orderFile)) {
-				String line = reader.readLine();
-				while (line != null) {
-					Row kvMap = createKVMapFromLine(line);
-					// orderId一定存在且为long
-					if (orderId == kvMap.getKV("orderid").longValue) {
-						orderData = kvMap;
-						find = true;
-						break;
-					}
-					line = reader.readLine();
-				}
-				if (find == true) {
+		int index = indexFor(hashWithDistrub(orderId), CommonConstants.ORDER_SPLIT_SIZE);
+		String orderFile = this.query1Path+File.separator+index;
+		try (BufferedReader reader = IOUtils.createReader(orderFile)) {
+			String line = reader.readLine();
+			while (line != null) {
+				Row kvMap = createKVMapFromLine(line);
+				// orderId一定存在且为long
+				if (orderId == kvMap.getKV("orderid").longValue) {
+					orderData = kvMap;
 					break;
 				}
-			} catch (IOException e) {
-				// 忽略
+				line = reader.readLine();
 			}
+
+		} catch (IOException e) {
+			// 忽略
 		}
 		if (orderData == null) {
 			return null;
@@ -694,53 +692,47 @@ public class OrderSystemImpl implements OrderSystem {
 		// Row buyerData = buyerDataStoredByBuyer.get(new
 		// ComparableKeys(comparableKeysOrderingByBuyer, buyerQuery));
 		Row buyerData = null;
-		boolean find = false;
-		for (String buyerFile : this.buyerFiles) {
-			try (BufferedReader reader = IOUtils.createReader(buyerFile)) {
-				String line = reader.readLine();
-				while (line != null) {
-					Row kvMap = createKVMapFromLine(line);
-					// orderId一定存在且为long
-					if (buyerQuery.get("buyerid").rawValue.equals(kvMap.getKV("buyerid").rawValue)) {
-						buyerData = kvMap;
-						find = true;
-						break;
-					}
-					line = reader.readLine();
-				}
-				if (find == true) {
+		
+		int index = indexFor(hashWithDistrub(buyerQuery.getKV("buyerid").rawValue), CommonConstants.OTHER_SPLIT_SIZE);
+		String buyerFile = this.buyersPath + File.separator + index;
+		try (BufferedReader reader = IOUtils.createReader(buyerFile)) {
+			String line = reader.readLine();
+			while (line != null) {
+				Row kvMap = createKVMapFromLine(line);
+				// orderId一定存在且为long
+				if (buyerQuery.get("buyerid").rawValue.equals(kvMap.getKV("buyerid").rawValue)) {
+					buyerData = kvMap;
 					break;
 				}
-			} catch (IOException e) {
-				// 忽略
+				line = reader.readLine();
 			}
+
+		} catch (IOException e) {
+			// 忽略
 		}
 
 		Row goodQuery = new Row(orderData.getKV("goodid"));
 		// Row goodData = goodDataStoredByGood.get(new
 		// ComparableKeys(comparableKeysOrderingByGood, goodQuery));
 		Row goodData = null;
-		find = false;
-		for (String goodFile : this.goodFiles) {
-			try (BufferedReader reader = IOUtils.createReader(goodFile)) {
-				String line = reader.readLine();
-				while (line != null) {
-					Row kvMap = createKVMapFromLine(line);
-					// orderId一定存在且为long
-					if (goodQuery.get("goodid").rawValue.equals(kvMap.getKV("goodid").rawValue)) {
-						goodData = kvMap;
-						find = true;
-						break;
-					}
-					line = reader.readLine();
-				}
-				if (find == true) {
+		index = indexFor(hashWithDistrub(goodQuery.getKV("goodid").rawValue), CommonConstants.OTHER_SPLIT_SIZE);
+		String goodFile = this.goodsPath + File.separator + index;
+		try (BufferedReader reader = IOUtils.createReader(goodFile)) {
+			String line = reader.readLine();
+			while (line != null) {
+				Row kvMap = createKVMapFromLine(line);
+				// orderId一定存在且为long
+				if (goodQuery.get("goodid").rawValue.equals(kvMap.getKV("goodid").rawValue)) {
+					goodData = kvMap;
 					break;
 				}
-			} catch (IOException e) {
-				// 忽略
+				line = reader.readLine();
 			}
+
+		} catch (IOException e) {
+			// 忽略
 		}
+		
 		return ResultImpl.createResultRow(orderData, buyerData, goodData, createQueryKeys(keys));
 	}
 
