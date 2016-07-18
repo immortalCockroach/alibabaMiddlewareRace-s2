@@ -1,4 +1,4 @@
-package com.alibaba.middleware.race;
+package com.alibaba.middleware.race.utils;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;

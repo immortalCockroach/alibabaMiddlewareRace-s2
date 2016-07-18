@@ -5,14 +5,19 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import com.alibaba.middleware.race.utils.CommonConstants;
+import com.alibaba.middleware.race.utils.StringUtils;
+@Deprecated
 public class LargeFileReader {
 
 	public static void main(String args[]) throws IOException {
 		LargeFileReader handler = new LargeFileReader();
 
-		File largeFile = new File("order_records.txt");
+		File largeFile = new File("big_order_records.txt");
 
 		handler.readLargeTextFile(largeFile);
 	}
@@ -28,9 +33,6 @@ public class LargeFileReader {
 	 * Buffers are therefore initialised with an initial capacity, that's
 	 * typically a memory-page size.
 	 */
-	public static final int BLOCK_SIZE = 1024 * 1024;
-
-	public final String NEW_LINE = System.getProperty("line.separator");
 
 	/**
 	 * Reads a large text file by mapping parts of it into physical memory and
@@ -49,18 +51,19 @@ public class LargeFileReader {
 		FileChannel fileChannel = rFile.getChannel();
 
 		long fileLength = fileChannel.size();
-//		System.out.println("Length of the file measure in bytes = " + fileLength);
-//
-//		System.out.println("\n ***** Content of the file ***** \n");
-
+		// System.out.println("Length of the file measure in bytes = " +
+		// fileLength);
+		//
+		// System.out.println("\n ***** Content of the file ***** \n");
+		int i = 0;
 		StringBuilder residual = new StringBuilder();
 		boolean finalBlockContent = false;
-
-		for (long position = 0; position < fileLength; position += BLOCK_SIZE) {
+		long start = System.currentTimeMillis();
+		for (long position = 0; position < fileLength; position += CommonConstants.BLOCK_SIZE) {
 
 			long size;
-			if (position + BLOCK_SIZE < fileLength)
-				size = BLOCK_SIZE;
+			if (position + CommonConstants.BLOCK_SIZE < fileLength)
+				size = CommonConstants.BLOCK_SIZE;
 			else {
 				size = fileLength - position;
 				finalBlockContent = true;
@@ -98,8 +101,8 @@ public class LargeFileReader {
 				residual.delete(0, residual.length());
 			}
 
-			if (!blockContent.endsWith(System.getProperty("line.separator")) && !finalBlockContent) {
-				int lastNewLineIndex = StringUtils.lastIndexOf(blockContent, System.getProperty("line.separator"));
+			if (!blockContent.endsWith(CommonConstants.NEW_LINE) && !finalBlockContent) {
+				int lastNewLineIndex = StringUtils.lastIndexOf(blockContent, CommonConstants.NEW_LINE);
 
 				String contentAfterLastLineSperator = StringUtils.substring(blockContent, lastNewLineIndex);
 
@@ -114,18 +117,41 @@ public class LargeFileReader {
 			List<String> lines = StringUtils.tokenise(blockContent);
 
 			// Printing the content of each line to prove this works!
-//			System.out.println("********** Content of 1 kb block printed one line at a time. **********");
-//			for (String line : lines)
-//				System.out.println(line);
+			// System.out.println("********** Content of 1 kb block printed one
+			// line at a time. **********");
+			for (String line : lines) {
+				try {
+					if(line!=null && line.length()>0)
+					createKVMapFromLine(line);
+				} catch (StringIndexOutOfBoundsException e) {
+					System.out.println("line:" + line);
+				}
+			}
 
 			// TODO: Obtain the lines of textual content for each block of data
 			// and process it further according to your needs.
 			// Feel free to adapt this - One approach is to process these blocks
 			// of lines in parallel instead of sequential processing
 		}
-//		System.out.println("********** End of file's content **********");
+		 System.out.println(System.currentTimeMillis()-start);
+		// System.out.println("********** End of file's content **********");
 		rFile.close();
 		fileChannel.close();
+	}
+
+	private static Map<String, String> createKVMapFromLine(String line) {
+		String[] kvs = line.split("\t");
+		Map<String, String> kvMap = new HashMap<>();
+		for (String rawkv : kvs) {
+			int p = rawkv.indexOf(':');
+			String key = rawkv.substring(0, p);
+			String value = rawkv.substring(p + 1);
+			if (key.length() == 0 || value.length() == 0) {
+				throw new RuntimeException("Bad data:" + line);
+			}
+			kvMap.put(key, value);
+		}
+		return kvMap;
 	}
 
 }
