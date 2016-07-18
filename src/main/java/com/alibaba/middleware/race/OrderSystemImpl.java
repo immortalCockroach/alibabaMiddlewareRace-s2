@@ -16,7 +16,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 
+import com.alibaba.middleware.race.OrderSystemImpl.Row;
 import com.alibaba.middleware.race.utils.CommonConstants;
 import com.alibaba.middleware.race.utils.IOUtils;
 
@@ -38,7 +40,7 @@ public class OrderSystemImpl implements OrderSystem {
 	private String query1Path;
 	private String query2Path;
 	private String query3Path;
-	private String query4Path;
+//	private String query4Path;
 	
 	private String buyersPath;
 	private String goodsPath;
@@ -46,7 +48,7 @@ public class OrderSystemImpl implements OrderSystem {
 	private BufferedWriter[] query1Writers;
 	private BufferedWriter[] query2Writers;
 	private BufferedWriter[] query3Writers;
-	private BufferedWriter[] query4Writers;
+//	private BufferedWriter[] query4Writers;
 	
 	private BufferedWriter[] buyersWriters;
 	private BufferedWriter[] goodsWriters;
@@ -131,7 +133,7 @@ public class OrderSystemImpl implements OrderSystem {
 	 *
 	 */
 	@SuppressWarnings("serial")
-	static private class Row extends HashMap<String, KV> {
+	static class Row extends HashMap<String, KV> {
 		Row() {
 			super();
 		}
@@ -164,6 +166,49 @@ public class OrderSystemImpl implements OrderSystem {
 			KV kv = new KV(key, Long.toString(value));
 			this.put(kv.key(), kv);
 			return this;
+		}
+	}
+	
+	class HashIndexCreator implements Runnable{
+		private String hashId;
+		private BufferedWriter[] writers;
+		private Collection<String> files;
+		private CountDownLatch latch;
+		private final int BUCKET_SIZE;
+		
+		public HashIndexCreator(String hashId, BufferedWriter[] writers, Collection<String> files, int bUCKET_SIZE, CountDownLatch latch) {
+			super();
+			this.latch =latch;
+			this.hashId = hashId;
+			this.writers = writers;
+			this.files = files;
+			BUCKET_SIZE = bUCKET_SIZE;
+		}
+
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			for(String orderFile : this.files) {
+				try (BufferedReader reader = IOUtils.createReader(orderFile)) {
+					String line = reader.readLine();
+					while (line != null) {
+						Row kvMap = createKVMapFromLine(line);
+						// orderId一定存在且为long
+						KV orderKV = kvMap.getKV(hashId);
+						int index = indexFor(
+								hashWithDistrub(hashId.equals("orderid") ? orderKV.longValue : orderKV.rawValue),
+								BUCKET_SIZE);
+						BufferedWriter bw = writers[index];
+						bw.write(line);
+						bw.newLine();
+						line = reader.readLine();
+					}
+					
+				} catch (IOException e) {
+					// 忽略
+				}
+			}
+			this.latch.countDown();
 		}
 	}
 
@@ -373,7 +418,7 @@ public class OrderSystemImpl implements OrderSystem {
 	 * @param line
 	 * @return
 	 */
-	private Row createKVMapFromLine(String line) {
+	Row createKVMapFromLine(String line) {
 		String[] kvs = line.split("\t");
 		Row kvMap = new Row();
 		for (String rawkv : kvs) {
@@ -423,7 +468,21 @@ public class OrderSystemImpl implements OrderSystem {
 
 	}
 	private void constructHashIndex() {
-
+		// 6个线程各自完成之后 该函数才能返回
+		CountDownLatch latch = new CountDownLatch(6);
+		new Thread(new HashIndexCreator("orderid", query1Writers, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
+		new Thread(new HashIndexCreator("buyerid", query2Writers, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
+		new Thread(new HashIndexCreator("goodid", query3Writers, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
+//		new Thread(new HashIndexCreator("goodid", query4Writers, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
+		new Thread(new HashIndexCreator("buyerid", buyersWriters, buyerFiles, CommonConstants.OTHER_SPLIT_SIZE,latch)).start();
+		new Thread(new HashIndexCreator("goodid", goodsWriters, goodFiles, CommonConstants.OTHER_SPLIT_SIZE,latch)).start();
+		
+		try {
+			latch.await();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	private int hashWithDistrub(Object k) {
@@ -471,14 +530,14 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 		}
 
-		this.query4Writers = new BufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
-		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
-			try {
-				query4Writers[i] = IOUtils.createWriter(this.query4Path + File.separator + i);
-			} catch (IOException e) {
-
-			}
-		}
+//		this.query4Writers = new BufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
+//		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
+//			try {
+//				query4Writers[i] = IOUtils.createWriter(this.query4Path + File.separator + i);
+//			} catch (IOException e) {
+//
+//			}
+//		}
 		
 		this.buyersWriters = new BufferedWriter[CommonConstants.OTHER_SPLIT_SIZE];
 		for (int i = 0; i < CommonConstants.OTHER_SPLIT_SIZE; i++) {
@@ -535,14 +594,13 @@ public class OrderSystemImpl implements OrderSystem {
 		storeIndex++;
 		storeIndex %= len;
 
-		this.query4Path = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.QUERY4_PREFIX;
-		File query4File = new File(query4Path);
-		if (!query4File.exists()) {
-			query4File.mkdirs();
-		}
-		storeIndex++;
-		storeIndex %= len;
-		System.out.println(storeFoldersList.get(storeIndex)+",index:"+storeIndex);
+//		this.query4Path = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.QUERY4_PREFIX;
+//		File query4File = new File(query4Path);
+//		if (!query4File.exists()) {
+//			query4File.mkdirs();
+//		}
+//		storeIndex++;
+//		storeIndex %= len;
 		this.buyersPath = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.BUYERS_PREFIX;
 		File buyersFile = new File(buyersPath);
 		if (!buyersFile.exists()) {
@@ -607,9 +665,9 @@ public class OrderSystemImpl implements OrderSystem {
 			for (BufferedWriter bw : query3Writers) {
 				bw.close();
 			}
-			for (BufferedWriter bw : query4Writers) {
-				bw.close();
-			}
+//			for (BufferedWriter bw : query4Writers) {
+//				bw.close();
+//			}
 			
 			for (BufferedWriter bw : buyersWriters) {
 				bw.close();
