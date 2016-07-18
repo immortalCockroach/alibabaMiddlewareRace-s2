@@ -1,6 +1,7 @@
 package com.alibaba.middleware.race;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -38,6 +39,15 @@ public class OrderSystemImpl implements OrderSystem {
 	private Collection<String> orderFiles;
 	private Collection<String> goodFiles;
 	private Collection<String> buyerFiles;
+	
+	private String query1Path;
+	private String query2Path;
+	private String query3Path;
+	private String query4Path;
+	
+	private String buyersPath;
+	private String goodsPath;
+	
 
 	/**
 	 * KeyValue的实现类，代表一行中的某个key-value对 raw数据采用String来存储 之后根据情况返回对应的long获得double
@@ -260,53 +270,10 @@ public class OrderSystemImpl implements OrderSystem {
 	}
 
 	/**
-	 * order表的四种组织方式 针对4中查询
+	 * 根据参数新建新建文件 目录等操作
 	 */
-//	// 查询1
-//	TreeMap<ComparableKeys, Row> orderDataSortedByOrder = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
-//	// 查询2
-//	TreeMap<ComparableKeys, Row> orderDataSortedByBuyerCreateTime = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
-//	// 查询3
-//	TreeMap<ComparableKeys, Row> orderDataSortedBySalerGood = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
-//	// 查询4
-//	TreeMap<ComparableKeys, Row> orderDataSortedByGood = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
-//
-//	/**
-//	 * 买家和商品表的组织方式 用于查询的group
-//	 */
-//	// 买家信息表（按buyerId排序）
-//	TreeMap<ComparableKeys, Row> buyerDataStoredByBuyer = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
-//	// 商品信息表（按goodId排序）
-//	TreeMap<ComparableKeys, Row> goodDataStoredByGood = new TreeMap<OrderSystemImpl.ComparableKeys, Row>();
-
 	public OrderSystemImpl() {
-//		comparableKeysOrderingByOrderId = new ArrayList<String>();
-//		comparableKeysOrderingByBuyerCreateTimeOrderId = new ArrayList<String>();
-//		comparableKeysOrderingBySalerGoodOrderId = new ArrayList<String>();
-//		comparableKeysOrderingByGood = new ArrayList<String>();
-//		comparableKeysOrderingByGoodOrderId = new ArrayList<String>();
-//		comparableKeysOrderingByBuyer = new ArrayList<String>();
-//		// 查询1
-//		comparableKeysOrderingByOrderId.add("orderid");
-//
-//		// 查询2
-//		comparableKeysOrderingByBuyerCreateTimeOrderId.add("buyerid");
-//		comparableKeysOrderingByBuyerCreateTimeOrderId.add("createtime");
-//		comparableKeysOrderingByBuyerCreateTimeOrderId.add("orderid");
-//
-//		// 查询3
-//		comparableKeysOrderingBySalerGoodOrderId.add("salerid");
-//		comparableKeysOrderingBySalerGoodOrderId.add("goodid");
-//		comparableKeysOrderingBySalerGoodOrderId.add("orderid");
-//
-//		// 查询4
-//		comparableKeysOrderingByGoodOrderId.add("goodid");
-//		comparableKeysOrderingByGoodOrderId.add("orderid");
-//
-//		comparableKeysOrderingByGood.add("goodid");
-//
-//		comparableKeysOrderingByBuyer.add("buyerid");
-
+		
 	}
 
 	public static void main(String[] args) throws IOException, InterruptedException {
@@ -441,41 +408,62 @@ public class OrderSystemImpl implements OrderSystem {
 		this.orderFiles = orderFiles;
 		this.buyerFiles = buyerFiles;
 		this.goodFiles = goodFiles;
-		// Handling goodFiles
-//		new DataFileHandler() {
-//			@Override
-//			void handleRow(Row row) {
-//				goodDataStoredByGood.put(new ComparableKeys(comparableKeysOrderingByGood, row), row);
-//			}
-//		}.handle(goodFiles);
-//
-//		// Handling orderFiles
-//		new DataFileHandler() {
-//			@Override
-//			void handleRow(Row row) {
-//				KV goodid = row.getKV("goodid");
-//				Row goodData = goodDataStoredByGood.get(new ComparableKeys(comparableKeysOrderingByGood, row));
-//				if (goodData == null) {
-//					throw new RuntimeException("Bad data! goodid " + goodid.rawValue + " not exist in good files");
-//				}
-//				KV salerid = goodData.get("salerid");
-//				row.put("salerid", salerid);
-//
-//				orderDataSortedByOrder.put(new ComparableKeys(comparableKeysOrderingByOrderId, row), row);
-//				orderDataSortedByBuyerCreateTime
-//						.put(new ComparableKeys(comparableKeysOrderingByBuyerCreateTimeOrderId, row), row);
-//				orderDataSortedBySalerGood.put(new ComparableKeys(comparableKeysOrderingBySalerGoodOrderId, row), row);
-//				orderDataSortedByGood.put(new ComparableKeys(comparableKeysOrderingByGoodOrderId, row), row);
-//			}
-//		}.handle(orderFiles);
-//
-//		// Handling buyerFiles
-//		new DataFileHandler() {
-//			@Override
-//			void handleRow(Row row) {
-//				buyerDataStoredByBuyer.put(new ComparableKeys(comparableKeysOrderingByBuyer, row), row);
-//			}
-//		}.handle(buyerFiles);
+		constructDir(storeFolders);
+		constructReaderForIndexFile();
+
+	}
+	
+	private void constructReaderForIndexFile() {
+		
+	}
+	
+	private void constructDir(Collection<String> storeFolders) {
+		List<String> storeFoldersList = new ArrayList<>(storeFolders);
+		
+		// 4种查询的4种索引文件和买家、商品信息平均分到不同的路径上
+		int len = storeFoldersList.size();
+		int storeIndex = 0;
+		
+		this.query1Path = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.QUERY1_PREFIX;
+		File query1File = new File(query1Path);
+		if (!query1File.exists()) {
+			query1File.mkdirs();
+		}
+		storeIndex = (storeIndex++) % len;
+		
+		this.query2Path = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.QUERY2_PREFIX;
+		File query2File = new File(query2Path);
+		if (!query2File.exists()) {
+			query2File.mkdirs();
+		}
+		storeIndex = (storeIndex++) % len;
+		
+		this.query3Path = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.QUERY3_PREFIX;
+		File query3File = new File(query3Path);
+		if (!query3File.exists()) {
+			query3File.mkdirs();
+		}
+		storeIndex = (storeIndex++) % len;
+		
+		this.query4Path = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.QUERY4_PREFIX;
+		File query4File = new File(query4Path);
+		if (!query4File.exists()) {
+			query4File.mkdirs();
+		}
+		storeIndex = (storeIndex++) % len;
+		
+		this.buyersPath = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.BUYERS_PREFIX;
+		File buyersFile = new File(buyersPath);
+		if (!buyersFile.exists()) {
+			buyersFile.mkdirs();
+		}
+		storeIndex = (storeIndex++) % len;
+		
+		this.goodsPath = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.GOODS_PREFIX;
+		File goodsFile = new File(goodsPath);
+		if (!goodsFile.exists()) {
+			goodsFile.mkdirs();
+		}
 	}
 
 	public Result queryOrder(long orderId, Collection<String> keys) {
