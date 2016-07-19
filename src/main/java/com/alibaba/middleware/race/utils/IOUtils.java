@@ -8,11 +8,11 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 public class IOUtils {
-	public static BufferedReader createReader(String file) throws FileNotFoundException {
-		return new BufferedReader(new FileReader(file), CommonConstants.BLOCK_SIZE);
+	public static BufferedReader createReader(String file, int blockSize) throws FileNotFoundException {
+		return new BufferedReader(new FileReader(file), blockSize);
 	}
 	
-	public static BufferedWriter createWriter(String file) throws IOException {
-		return new BufferedWriter(new FileWriter(file), CommonConstants.BLOCK_SIZE);
+	public static BufferedWriter createWriter(String file, int blockSize) throws IOException {
+		return new BufferedWriter(new FileWriter(file), blockSize);
 	}
 }
