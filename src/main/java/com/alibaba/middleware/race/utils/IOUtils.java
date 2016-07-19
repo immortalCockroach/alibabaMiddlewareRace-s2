@@ -8,8 +8,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 public class IOUtils {
-	public static ExtendBufferedReader createReader(String file, int blockSize) throws FileNotFoundException {
-		return new ExtendBufferedReader(new FileReader(file), blockSize);
+	public static BufferedReader createReader(String file, int blockSize) throws FileNotFoundException {
+		return new BufferedReader(new FileReader(file), blockSize);
 	}
 	
 	public static BufferedWriter createWriter(String file, int blockSize) throws IOException {
