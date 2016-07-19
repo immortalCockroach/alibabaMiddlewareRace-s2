@@ -3,9 +3,6 @@ package com.alibaba.middleware.race;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,7 +15,6 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
-import com.alibaba.middleware.race.OrderSystemImpl.Row;
 import com.alibaba.middleware.race.utils.CommonConstants;
 import com.alibaba.middleware.race.utils.IOUtils;
 
@@ -175,30 +171,36 @@ public class OrderSystemImpl implements OrderSystem {
 		private Collection<String> files;
 		private CountDownLatch latch;
 		private final int BUCKET_SIZE;
+		private final int BLOCK_SIZE;
 		
-		public HashIndexCreator(String hashId, BufferedWriter[] writers, Collection<String> files, int bUCKET_SIZE, CountDownLatch latch) {
+		public HashIndexCreator(String hashId, BufferedWriter[] writers, Collection<String> files, int bUCKET_SIZE, int blockSize, CountDownLatch latch) {
 			super();
 			this.latch =latch;
 			this.hashId = hashId;
 			this.writers = writers;
 			this.files = files;
 			BUCKET_SIZE = bUCKET_SIZE;
+			BLOCK_SIZE = blockSize;
 		}
 
 		@Override
 		public void run() {
 			// TODO Auto-generated method stub
 			for(String orderFile : this.files) {
-				try (BufferedReader reader = IOUtils.createReader(orderFile)) {
+				Row kvMap;
+				KV orderKV;
+				int index;
+				BufferedWriter bw;
+				try (BufferedReader reader = IOUtils.createReader(orderFile, BLOCK_SIZE)) {
 					String line = reader.readLine();
 					while (line != null) {
-						Row kvMap = createKVMapFromLine(line);
+						kvMap = createKVMapFromLine(line);
 						// orderId一定存在且为long
-						KV orderKV = kvMap.getKV(hashId);
-						int index = indexFor(
+						orderKV = kvMap.getKV(hashId);
+						index = indexFor(
 								hashWithDistrub(hashId.equals("orderid") ? orderKV.longValue : orderKV.rawValue),
 								BUCKET_SIZE);
-						BufferedWriter bw = writers[index];
+						bw = writers[index];
 						bw.write(line);
 						bw.newLine();
 						line = reader.readLine();
@@ -337,9 +339,15 @@ public class OrderSystemImpl implements OrderSystem {
 		List<String> goodFiles = new ArrayList<String>();
 		List<String> storeFolders = new ArrayList<String>();
 
-		orderFiles.add("order_records.txt");
-		buyerFiles.add("buyer_records.txt");
-		goodFiles.add("good_records.txt");
+		orderFiles.add("prerun_data\\order.0.0");
+		orderFiles.add("prerun_data\\order.1.1");
+		orderFiles.add("prerun_data\\order.2.2");
+		orderFiles.add("prerun_data\\order.0.3");
+		buyerFiles.add("prerun_data\\buyer.0.0");
+		buyerFiles.add("prerun_data\\buyer.1.1");
+		goodFiles.add("prerun_data\\good.0.0");
+		goodFiles.add("prerun_data\\good.1.1");
+		goodFiles.add("prerun_data\\good.2.2");
 		storeFolders.add("./");
 
 		storeFolders.add("./data");
@@ -347,29 +355,29 @@ public class OrderSystemImpl implements OrderSystem {
 		os.construct(orderFiles, buyerFiles, goodFiles, storeFolders);
 
 		// 用例
-		long start = System.currentTimeMillis();
-		long orderid = 2982388;
-		System.out.println("\n查询订单号为" + orderid + "的订单");
-		System.out.println(os.queryOrder(orderid, null));
-
-		System.out.println("\n查询订单号为" + orderid + "的订单，查询的keys为空，返回订单，但没有kv数据");
-		System.out.println(os.queryOrder(orderid, new ArrayList<String>()));
-
-		System.out.println("\n查询订单号为" + orderid + "的订单的contactphone, buyerid,foo, done, price字段");
-		List<String> queryingKeys = new ArrayList<String>();
-		queryingKeys.add("contactphone");
-		queryingKeys.add("buyerid");
-		queryingKeys.add("foo");
-		queryingKeys.add("done");
-		queryingKeys.add("price");
-		Result result = os.queryOrder(orderid, queryingKeys);
-		System.out.println(result);
-		System.out.println("\n查询订单号不存在的订单");
-		result = os.queryOrder(1111, queryingKeys);
-		if (result == null) {
-			System.out.println(1111 + " order not exist");
-		}
-		System.out.println(System.currentTimeMillis() - start);
+//		long start = System.currentTimeMillis();
+//		long orderid = 2982388;
+//		System.out.println("\n查询订单号为" + orderid + "的订单");
+//		System.out.println(os.queryOrder(orderid, null));
+//
+//		System.out.println("\n查询订单号为" + orderid + "的订单，查询的keys为空，返回订单，但没有kv数据");
+//		System.out.println(os.queryOrder(orderid, new ArrayList<String>()));
+//
+//		System.out.println("\n查询订单号为" + orderid + "的订单的contactphone, buyerid,foo, done, price字段");
+//		List<String> queryingKeys = new ArrayList<String>();
+//		queryingKeys.add("contactphone");
+//		queryingKeys.add("buyerid");
+//		queryingKeys.add("foo");
+//		queryingKeys.add("done");
+//		queryingKeys.add("price");
+//		Result result = os.queryOrder(orderid, queryingKeys);
+//		System.out.println(result);
+//		System.out.println("\n查询订单号不存在的订单");
+//		result = os.queryOrder(1111, queryingKeys);
+//		if (result == null) {
+//			System.out.println(1111 + " order not exist");
+//		}
+//		System.out.println(System.currentTimeMillis() - start);
 //		long start = System.currentTimeMillis();
 //		String buyerid = "tb_a99a7956-974d-459f-bb09-b7df63ed3b80";
 //		long startTime = 1471025622;
@@ -391,6 +399,12 @@ public class OrderSystemImpl implements OrderSystem {
 //			System.out.println(it.next());
 //		}
 		//
+		long start = System.currentTimeMillis();
+		String goodid = "dd-8327-2809edadb826";
+		String attr = "a_b_6984";
+		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
+		System.out.println(os.sumOrdersByGood(goodid, attr));
+		System.out.println(System.currentTimeMillis() -start);
 //		String goodid = "good_d191eeeb-fed1-4334-9c77-3ee6d6d66aff";
 //		String attr = "app_order_33_0";
 //		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
@@ -435,25 +449,25 @@ public class OrderSystemImpl implements OrderSystem {
 		return kvMap;
 	}
 
-	private abstract class DataFileHandler {
-		abstract void handleRow(Row row);
-
-		void handle(Collection<String> files) throws IOException {
-			for (String file : files) {
-				BufferedReader bfr = IOUtils.createReader(file);
-				try {
-					String line = bfr.readLine();
-					while (line != null) {
-						Row kvMap = createKVMapFromLine(line);
-						handleRow(kvMap);
-						line = bfr.readLine();
-					}
-				} finally {
-					bfr.close();
-				}
-			}
-		}
-	}
+//	private abstract class DataFileHandler {
+//		abstract void handleRow(Row row);
+//
+//		void handle(Collection<String> files) throws IOException {
+//			for (String file : files) {
+//				BufferedReader bfr = IOUtils.createReader(file);
+//				try {
+//					String line = bfr.readLine();
+//					while (line != null) {
+//						Row kvMap = createKVMapFromLine(line);
+//						handleRow(kvMap);
+//						line = bfr.readLine();
+//					}
+//				} finally {
+//					bfr.close();
+//				}
+//			}
+//		}
+//	}
 
 	public void construct(Collection<String> orderFiles, Collection<String> buyerFiles, Collection<String> goodFiles,
 			Collection<String> storeFolders) throws IOException, InterruptedException {
@@ -462,22 +476,37 @@ public class OrderSystemImpl implements OrderSystem {
 		this.buyerFiles = buyerFiles;
 		this.goodFiles = goodFiles;
 		constructDir(storeFolders);
+		long dir = System.currentTimeMillis();
 		constructWriterForIndexFile();
+		long writer = System.currentTimeMillis();
 		constructHashIndex();
+		long index = System.currentTimeMillis();
 		closeWriter();
-		System.out.println("construct time:"+(System.currentTimeMillis()-start));
+		long closeWriter = System.currentTimeMillis();
+		System.out.println("dir time:"+ (dir-start));
+		System.out.println("writer time:"+ (writer-dir));
+		System.out.println("index time:"+ (index-writer));
+		System.out.println("close time:"+ (closeWriter-index));
+		
+		System.out.println("construct KO");
 		
 
 	}
 	private void constructHashIndex() {
 		// 5个线程各自完成之后 该函数才能返回
 		CountDownLatch latch = new CountDownLatch(5);
-		new Thread(new HashIndexCreator("orderid", query1Writers, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
-		new Thread(new HashIndexCreator("buyerid", query2Writers, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
-		new Thread(new HashIndexCreator("goodid", query3Writers, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
-//		new Thread(new HashIndexCreator("goodid", query4Writers, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
-		new Thread(new HashIndexCreator("buyerid", buyersWriters, buyerFiles, CommonConstants.OTHER_SPLIT_SIZE,latch)).start();
-		new Thread(new HashIndexCreator("goodid", goodsWriters, goodFiles, CommonConstants.OTHER_SPLIT_SIZE,latch)).start();
+		new Thread(new HashIndexCreator("orderid", query1Writers, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
+				CommonConstants.ORDERFILE_BLOCK_SIZE, latch)).start();
+		new Thread(new HashIndexCreator("buyerid", query2Writers, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
+				CommonConstants.ORDERFILE_BLOCK_SIZE, latch)).start();
+		new Thread(new HashIndexCreator("goodid", query3Writers, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
+				CommonConstants.ORDERFILE_BLOCK_SIZE, latch)).start();
+		// new Thread(new HashIndexCreator("goodid", query4Writers, orderFiles,
+		// CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
+		new Thread(new HashIndexCreator("buyerid", buyersWriters, buyerFiles, CommonConstants.OTHER_SPLIT_SIZE,
+				CommonConstants.OTHERFILE_BLOCK_SIZE, latch)).start();
+		new Thread(new HashIndexCreator("goodid", goodsWriters, goodFiles, CommonConstants.OTHER_SPLIT_SIZE,
+				CommonConstants.OTHERFILE_BLOCK_SIZE, latch)).start();
 		
 		try {
 			latch.await();
@@ -510,7 +539,7 @@ public class OrderSystemImpl implements OrderSystem {
 		this.query1Writers = new BufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
 		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
 			try {
-				query1Writers[i] = IOUtils.createWriter(this.query1Path + File.separator + i);
+				query1Writers[i] = IOUtils.createWriter(this.query1Path + File.separator + i, CommonConstants.INDEX_BLOCK_SIZE);
 			} catch (IOException e) {
 
 			}
@@ -518,7 +547,7 @@ public class OrderSystemImpl implements OrderSystem {
 		this.query2Writers = new BufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
 		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
 			try {
-				query2Writers[i] = IOUtils.createWriter(this.query2Path + File.separator + i);
+				query2Writers[i] = IOUtils.createWriter(this.query2Path + File.separator + i, CommonConstants.INDEX_BLOCK_SIZE);
 			} catch (IOException e) {
 
 			}
@@ -526,7 +555,7 @@ public class OrderSystemImpl implements OrderSystem {
 		this.query3Writers = new BufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
 		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
 			try {
-				query3Writers[i] = IOUtils.createWriter(this.query3Path + File.separator + i);
+				query3Writers[i] = IOUtils.createWriter(this.query3Path + File.separator + i, CommonConstants.INDEX_BLOCK_SIZE);
 			} catch (IOException e) {
 
 			}
@@ -544,7 +573,7 @@ public class OrderSystemImpl implements OrderSystem {
 		this.buyersWriters = new BufferedWriter[CommonConstants.OTHER_SPLIT_SIZE];
 		for (int i = 0; i < CommonConstants.OTHER_SPLIT_SIZE; i++) {
 			try {
-				buyersWriters[i] = IOUtils.createWriter(this.buyersPath + File.separator + i);
+				buyersWriters[i] = IOUtils.createWriter(this.buyersPath + File.separator + i, CommonConstants.INDEX_BLOCK_SIZE);
 			} catch (IOException e) {
 
 			}
@@ -553,7 +582,7 @@ public class OrderSystemImpl implements OrderSystem {
 		this.goodsWriters = new BufferedWriter[CommonConstants.OTHER_SPLIT_SIZE];
 		for (int i = 0; i < CommonConstants.OTHER_SPLIT_SIZE; i++) {
 			try {
-				goodsWriters[i] = IOUtils.createWriter(this.goodsPath + File.separator + i);
+				goodsWriters[i] = IOUtils.createWriter(this.goodsPath + File.separator + i, CommonConstants.INDEX_BLOCK_SIZE);
 			} catch (IOException e) {
 
 			}
@@ -630,10 +659,11 @@ public class OrderSystemImpl implements OrderSystem {
 		Row orderData = null;
 		int index = indexFor(hashWithDistrub(orderId), CommonConstants.ORDER_SPLIT_SIZE);
 		String orderFile = this.query1Path+File.separator+index;
-		try (BufferedReader reader = IOUtils.createReader(orderFile)) {
+		try (BufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.INDEX_BLOCK_SIZE)) {
 			String line = reader.readLine();
+			Row kvMap;
 			while (line != null) {
-				Row kvMap = createKVMapFromLine(line);
+				kvMap = createKVMapFromLine(line);
 				// orderId一定存在且为long
 				if (orderId == kvMap.getKV("orderid").longValue) {
 					orderData = kvMap;
@@ -695,7 +725,7 @@ public class OrderSystemImpl implements OrderSystem {
 		
 		int index = indexFor(hashWithDistrub(buyerQuery.getKV("buyerid").rawValue), CommonConstants.OTHER_SPLIT_SIZE);
 		String buyerFile = this.buyersPath + File.separator + index;
-		try (BufferedReader reader = IOUtils.createReader(buyerFile)) {
+		try (BufferedReader reader = IOUtils.createReader(buyerFile, CommonConstants.INDEX_BLOCK_SIZE)) {
 			String line = reader.readLine();
 			while (line != null) {
 				Row kvMap = createKVMapFromLine(line);
@@ -717,7 +747,7 @@ public class OrderSystemImpl implements OrderSystem {
 		Row goodData = null;
 		index = indexFor(hashWithDistrub(goodQuery.getKV("goodid").rawValue), CommonConstants.OTHER_SPLIT_SIZE);
 		String goodFile = this.goodsPath + File.separator + index;
-		try (BufferedReader reader = IOUtils.createReader(goodFile)) {
+		try (BufferedReader reader = IOUtils.createReader(goodFile, CommonConstants.INDEX_BLOCK_SIZE)) {
 			String line = reader.readLine();
 			while (line != null) {
 				Row kvMap = createKVMapFromLine(line);
@@ -758,23 +788,26 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 
 		});
-		for (String orderFile : this.orderFiles) {
-			try (BufferedReader reader = IOUtils.createReader(orderFile)) {
-				String line = reader.readLine();
-				while (line != null) {
-					Row kvMap = createKVMapFromLine(line);
-					// orderId一定存在且为long
-					long createTime = kvMap.get("createtime").longValue;
-					if (kvMap.get("buyerid").rawValue.equals(buyerid) && createTime >= startTime && createTime < endTime) {
-						buyerOrderQueue.offer(kvMap);
-						//buyerOrderMap.put(createTime, kvMap);
-					}
-					line = reader.readLine();
+		int index = indexFor(hashWithDistrub(buyerid), CommonConstants.ORDER_SPLIT_SIZE);
+		String orderFile = this.query2Path + File.separator + index;
+		try (BufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.INDEX_BLOCK_SIZE)) {
+			String line = reader.readLine();
+			Row kvMap;
+			long createTime;
+			while (line != null) {
+				kvMap = createKVMapFromLine(line);
+				// orderId一定存在且为long
+				createTime = kvMap.get("createtime").longValue;
+				if (kvMap.get("buyerid").rawValue.equals(buyerid) && createTime >= startTime && createTime < endTime) {
+					buyerOrderQueue.offer(kvMap);
+					//buyerOrderMap.put(createTime, kvMap);
 				}
-			} catch (IOException e) {
-				// 忽略
+				line = reader.readLine();
 			}
+		} catch (IOException e) {
+			// 忽略
 		}
+		
 		return new Iterator<OrderSystem.Result>() {
 
 			PriorityQueue<Row> o = buyerOrderQueue;
@@ -815,22 +848,24 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 
 		});
-		for (String orderFile : this.orderFiles) {
-			try (BufferedReader reader = IOUtils.createReader(orderFile)) {
-				String line = reader.readLine();
-				while (line != null) {
-					Row kvMap = createKVMapFromLine(line);
-					// orderId一定存在且为long
-					if (kvMap.get("goodid").rawValue.equals(goodid)) {
-						salerGoodsQueue.offer(kvMap);
-						//buyerOrderMap.put(createTime, kvMap);
-					}
-					line = reader.readLine();
+		int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
+		String orderFile = this.query3Path + File.separator + index;
+		try (BufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.INDEX_BLOCK_SIZE)) {
+			String line = reader.readLine();
+			Row kvMap;
+			while (line != null) {
+				kvMap = createKVMapFromLine(line);
+				// orderId一定存在且为long
+				if (kvMap.get("goodid").rawValue.equals(goodid)) {
+					salerGoodsQueue.offer(kvMap);
+					//buyerOrderMap.put(createTime, kvMap);
 				}
-			} catch (IOException e) {
-				// 忽略
+				line = reader.readLine();
 			}
+		} catch (IOException e) {
+			// 忽略
 		}
+		
 
 		return new Iterator<OrderSystem.Result>() {
 
@@ -856,22 +891,24 @@ public class OrderSystemImpl implements OrderSystem {
 
 	public KeyValue sumOrdersByGood(String goodid, String key) {
 		List<Row> ordersData = new ArrayList<>(1000);
-		for (String orderFile : this.orderFiles) {
-			try (BufferedReader reader = IOUtils.createReader(orderFile)) {
-				String line = reader.readLine();
-				while (line != null) {
-					Row kvMap = createKVMapFromLine(line);
-					// orderId一定存在且为long
-					if (kvMap.get("goodid").rawValue.equals(goodid)) {
-						ordersData.add(kvMap);
-						//buyerOrderMap.put(createTime, kvMap);
-					}
-					line = reader.readLine();
+		int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
+		String orderFile = this.query3Path + File.separator + index;
+		try (BufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.INDEX_BLOCK_SIZE)) {
+			String line = reader.readLine();
+			Row kvMap;
+			while (line != null) {
+				kvMap = createKVMapFromLine(line);
+				// orderId一定存在且为long
+				if (kvMap.get("goodid").rawValue.equals(goodid)) {
+					ordersData.add(kvMap);
+					//buyerOrderMap.put(createTime, kvMap);
 				}
-			} catch (IOException e) {
-				// 忽略
+				line = reader.readLine();
 			}
+		} catch (IOException e) {
+			// 忽略
 		}
+		
 		
 		HashSet<String> queryingKeys = new HashSet<String>();
 		queryingKeys.add(key);
