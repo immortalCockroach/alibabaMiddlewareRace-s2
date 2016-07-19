@@ -4,3 +4,4 @@ target/
 .settings/
 src/test
 *.txt
+prerun_data/
