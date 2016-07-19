@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
 import com.alibaba.middleware.race.utils.CommonConstants;
+import com.alibaba.middleware.race.utils.ExtendBufferedReader;
 import com.alibaba.middleware.race.utils.IOUtils;
 
 /**
@@ -191,7 +192,7 @@ public class OrderSystemImpl implements OrderSystem {
 				KV orderKV;
 				int index;
 				BufferedWriter bw;
-				try (BufferedReader reader = IOUtils.createReader(orderFile, BLOCK_SIZE)) {
+				try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, BLOCK_SIZE)) {
 					String line = reader.readLine();
 					while (line != null) {
 						kvMap = createKVMapFromLine(line);
@@ -660,7 +661,7 @@ public class OrderSystemImpl implements OrderSystem {
 		Row orderData = null;
 		int index = indexFor(hashWithDistrub(orderId), CommonConstants.ORDER_SPLIT_SIZE);
 		String orderFile = this.query1Path+File.separator+index;
-		try (BufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.INDEX_BLOCK_SIZE)) {
+		try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.INDEX_BLOCK_SIZE)) {
 			String line = reader.readLine();
 			Row kvMap;
 			while (line != null) {
@@ -726,7 +727,7 @@ public class OrderSystemImpl implements OrderSystem {
 		
 		int index = indexFor(hashWithDistrub(buyerQuery.getKV("buyerid").rawValue), CommonConstants.OTHER_SPLIT_SIZE);
 		String buyerFile = this.buyersPath + File.separator + index;
-		try (BufferedReader reader = IOUtils.createReader(buyerFile, CommonConstants.INDEX_BLOCK_SIZE)) {
+		try (ExtendBufferedReader reader = IOUtils.createReader(buyerFile, CommonConstants.INDEX_BLOCK_SIZE)) {
 			String line = reader.readLine();
 			while (line != null) {
 				Row kvMap = createKVMapFromLine(line);
@@ -748,7 +749,7 @@ public class OrderSystemImpl implements OrderSystem {
 		Row goodData = null;
 		index = indexFor(hashWithDistrub(goodQuery.getKV("goodid").rawValue), CommonConstants.OTHER_SPLIT_SIZE);
 		String goodFile = this.goodsPath + File.separator + index;
-		try (BufferedReader reader = IOUtils.createReader(goodFile, CommonConstants.INDEX_BLOCK_SIZE)) {
+		try (ExtendBufferedReader reader = IOUtils.createReader(goodFile, CommonConstants.INDEX_BLOCK_SIZE)) {
 			String line = reader.readLine();
 			while (line != null) {
 				Row kvMap = createKVMapFromLine(line);
@@ -791,7 +792,7 @@ public class OrderSystemImpl implements OrderSystem {
 		});
 		int index = indexFor(hashWithDistrub(buyerid), CommonConstants.ORDER_SPLIT_SIZE);
 		String orderFile = this.query2Path + File.separator + index;
-		try (BufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.INDEX_BLOCK_SIZE)) {
+		try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.INDEX_BLOCK_SIZE)) {
 			String line = reader.readLine();
 			Row kvMap;
 			long createTime;
@@ -851,7 +852,7 @@ public class OrderSystemImpl implements OrderSystem {
 		});
 		int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
 		String orderFile = this.query3Path + File.separator + index;
-		try (BufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.INDEX_BLOCK_SIZE)) {
+		try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.INDEX_BLOCK_SIZE)) {
 			String line = reader.readLine();
 			Row kvMap;
 			while (line != null) {
@@ -894,7 +895,7 @@ public class OrderSystemImpl implements OrderSystem {
 		List<Row> ordersData = new ArrayList<>(1000);
 		int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
 		String orderFile = this.query3Path + File.separator + index;
-		try (BufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.INDEX_BLOCK_SIZE)) {
+		try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.INDEX_BLOCK_SIZE)) {
 			String line = reader.readLine();
 			Row kvMap;
 			while (line != null) {
