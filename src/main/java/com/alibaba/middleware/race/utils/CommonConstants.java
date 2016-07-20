@@ -4,13 +4,13 @@ public class CommonConstants {
 	// 每次读取的块大小 用于BufferedReader和Writer的初始化
 	
 	// 索引文件的BLOCK大小
-	public static final int INDEX_BLOCK_SIZE = 1024 * 100;
+	public static final int INDEX_BLOCK_SIZE = 1024 * 10;
 	
 	// order文件的大小
-	public static final int ORDERFILE_BLOCK_SIZE = 1024 * 10 * 1024;
+	public static final int ORDERFILE_BLOCK_SIZE = 1024 * 100;
 	
 	// 买家和商品文件的大小
-	public static final int OTHERFILE_BLOCK_SIZE = 1024 * 1024;
+	public static final int OTHERFILE_BLOCK_SIZE = 1024 * 10;
 
 	public static final String NEW_LINE = System.getProperty("line.separator");
 	
