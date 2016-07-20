@@ -17,6 +17,7 @@ import java.util.concurrent.CountDownLatch;
 
 import com.alibaba.middleware.race.utils.CommonConstants;
 import com.alibaba.middleware.race.utils.ExtendBufferedReader;
+import com.alibaba.middleware.race.utils.ExtendBufferedWriter;
 import com.alibaba.middleware.race.utils.IOUtils;
 
 /**
@@ -42,13 +43,13 @@ public class OrderSystemImpl implements OrderSystem {
 	private String buyersPath;
 	private String goodsPath;
 	
-	private BufferedWriter[] query1Writers;
-	private BufferedWriter[] query2Writers;
-	private BufferedWriter[] query3Writers;
+	private ExtendBufferedWriter[] query1Writers;
+	private ExtendBufferedWriter[] query2Writers;
+	private ExtendBufferedWriter[] query3Writers;
 //	private BufferedWriter[] query4Writers;
 	
-	private BufferedWriter[] buyersWriters;
-	private BufferedWriter[] goodsWriters;
+	private ExtendBufferedWriter[] buyersWriters;
+	private ExtendBufferedWriter[] goodsWriters;
 	
 
 	/**
@@ -168,13 +169,13 @@ public class OrderSystemImpl implements OrderSystem {
 	
 	class HashIndexCreator implements Runnable{
 		private String hashId;
-		private BufferedWriter[] writers;
+		private ExtendBufferedWriter[] writers;
 		private Collection<String> files;
 		private CountDownLatch latch;
 		private final int BUCKET_SIZE;
 		private final int BLOCK_SIZE;
 		
-		public HashIndexCreator(String hashId, BufferedWriter[] writers, Collection<String> files, int bUCKET_SIZE, int blockSize, CountDownLatch latch) {
+		public HashIndexCreator(String hashId, ExtendBufferedWriter[] writers, Collection<String> files, int bUCKET_SIZE, int blockSize, CountDownLatch latch) {
 			super();
 			this.latch =latch;
 			this.hashId = hashId;
@@ -191,7 +192,7 @@ public class OrderSystemImpl implements OrderSystem {
 				Row kvMap;
 				KV orderKV;
 				int index;
-				BufferedWriter bw;
+				ExtendBufferedWriter bw;
 				try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, BLOCK_SIZE)) {
 					String line = reader.readLine();
 					while (line != null) {
@@ -547,7 +548,7 @@ public class OrderSystemImpl implements OrderSystem {
 	 */
 	private void constructWriterForIndexFile() {
 		// 创建4种查询的4中索引文件和买家 商品信息的writer
-		this.query1Writers = new BufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
+		this.query1Writers = new ExtendBufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
 		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
 			try {
 				query1Writers[i] = IOUtils.createWriter(this.query1Path + File.separator + i, CommonConstants.INDEX_BLOCK_SIZE);
@@ -555,7 +556,7 @@ public class OrderSystemImpl implements OrderSystem {
 
 			}
 		}
-		this.query2Writers = new BufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
+		this.query2Writers = new ExtendBufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
 		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
 			try {
 				query2Writers[i] = IOUtils.createWriter(this.query2Path + File.separator + i, CommonConstants.INDEX_BLOCK_SIZE);
@@ -563,7 +564,7 @@ public class OrderSystemImpl implements OrderSystem {
 
 			}
 		}
-		this.query3Writers = new BufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
+		this.query3Writers = new ExtendBufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
 		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
 			try {
 				query3Writers[i] = IOUtils.createWriter(this.query3Path + File.separator + i, CommonConstants.INDEX_BLOCK_SIZE);
@@ -581,7 +582,7 @@ public class OrderSystemImpl implements OrderSystem {
 //			}
 //		}
 		
-		this.buyersWriters = new BufferedWriter[CommonConstants.OTHER_SPLIT_SIZE];
+		this.buyersWriters = new ExtendBufferedWriter[CommonConstants.OTHER_SPLIT_SIZE];
 		for (int i = 0; i < CommonConstants.OTHER_SPLIT_SIZE; i++) {
 			try {
 				buyersWriters[i] = IOUtils.createWriter(this.buyersPath + File.separator + i, CommonConstants.INDEX_BLOCK_SIZE);
@@ -590,7 +591,7 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 		}
 		
-		this.goodsWriters = new BufferedWriter[CommonConstants.OTHER_SPLIT_SIZE];
+		this.goodsWriters = new ExtendBufferedWriter[CommonConstants.OTHER_SPLIT_SIZE];
 		for (int i = 0; i < CommonConstants.OTHER_SPLIT_SIZE; i++) {
 			try {
 				goodsWriters[i] = IOUtils.createWriter(this.goodsPath + File.separator + i, CommonConstants.INDEX_BLOCK_SIZE);
@@ -695,24 +696,24 @@ public class OrderSystemImpl implements OrderSystem {
 	
 	private void closeWriter() {
 		try {
-			for (BufferedWriter bw : query1Writers) {
+			for (ExtendBufferedWriter bw : query1Writers) {
 				bw.close();
 			}
-			for (BufferedWriter bw : query2Writers) {
+			for (ExtendBufferedWriter bw : query2Writers) {
 				bw.close();
 			}
-			for (BufferedWriter bw : query3Writers) {
+			for (ExtendBufferedWriter bw : query3Writers) {
 				bw.close();
 			}
 //			for (BufferedWriter bw : query4Writers) {
 //				bw.close();
 //			}
 			
-			for (BufferedWriter bw : buyersWriters) {
+			for (ExtendBufferedWriter bw : buyersWriters) {
 				bw.close();
 			}
 			
-			for (BufferedWriter bw : goodsWriters) {
+			for (ExtendBufferedWriter bw : goodsWriters) {
 				bw.close();
 			}
 		} catch (IOException e) {

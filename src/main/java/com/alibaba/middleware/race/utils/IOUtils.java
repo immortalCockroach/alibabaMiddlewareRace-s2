@@ -12,7 +12,7 @@ public class IOUtils {
 		return new ExtendBufferedReader(new FileReader(file), blockSize);
 	}
 	
-	public static BufferedWriter createWriter(String file, int blockSize) throws IOException {
-		return new BufferedWriter(new FileWriter(file), blockSize);
+	public static ExtendBufferedWriter createWriter(String file, int blockSize) throws IOException {
+		return new ExtendBufferedWriter(new FileWriter(file), blockSize);
 	}
 }
