@@ -473,6 +473,22 @@ public class OrderSystemImpl implements OrderSystem {
 
 	public void construct(Collection<String> orderFiles, Collection<String> buyerFiles, Collection<String> goodFiles,
 			Collection<String> storeFolders) throws IOException, InterruptedException {
+		System.out.println("orders:");
+		for(String s:orderFiles) {
+			System.out.println(s);
+		}
+		System.out.println("buyers:");
+		for(String s:buyerFiles) {
+			System.out.println(s);
+		}
+		System.out.println("goods:");
+		for(String s:goodFiles) {
+			System.out.println(s);
+		}
+		System.out.println("storeFolers:");
+		for(String s:storeFolders) {
+			System.out.println(s);
+		}
 		long start = System.currentTimeMillis();
 		this.orderFiles = orderFiles;
 		this.buyerFiles = buyerFiles;
