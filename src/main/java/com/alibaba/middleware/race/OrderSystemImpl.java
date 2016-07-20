@@ -495,7 +495,7 @@ public class OrderSystemImpl implements OrderSystem {
 	}
 	private void constructHashIndex() {
 		// 5个线程各自完成之后 该函数才能返回
-		CountDownLatch latch = new CountDownLatch(5);
+		CountDownLatch latch = new CountDownLatch(3);
 		new Thread(new HashIndexCreator("orderid", query1Writers, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch)).start();
 		new Thread(new HashIndexCreator("buyerid", query2Writers, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
@@ -504,6 +504,15 @@ public class OrderSystemImpl implements OrderSystem {
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch)).start();
 		// new Thread(new HashIndexCreator("goodid", query4Writers, orderFiles,
 		// CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
+
+		
+		try {
+			latch.await();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		latch = new CountDownLatch(2);
 		new Thread(new HashIndexCreator("buyerid", buyersWriters, buyerFiles, CommonConstants.OTHER_SPLIT_SIZE,
 				CommonConstants.OTHERFILE_BLOCK_SIZE, latch)).start();
 		new Thread(new HashIndexCreator("goodid", goodsWriters, goodFiles, CommonConstants.OTHER_SPLIT_SIZE,
