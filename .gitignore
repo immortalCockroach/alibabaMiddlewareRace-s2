@@ -5,3 +5,6 @@ target/
 src/test
 *.txt
 prerun_data/
+data/
+query*/
+goods/
