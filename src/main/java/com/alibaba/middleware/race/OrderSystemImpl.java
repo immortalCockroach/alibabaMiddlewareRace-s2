@@ -53,10 +53,10 @@ public class OrderSystemImpl implements OrderSystem {
 	private ExtendBufferedWriter[] buyersWriters;
 	private ExtendBufferedWriter[] goodsWriters;
 	
-	private Lock query1Lock;
-	private Lock query2Lock;
-	private Lock query3Lock;
-	private Lock query4Lock;
+//	private Lock query1Lock;
+//	private Lock query2Lock;
+//	private Lock query3Lock;
+//	private Lock query4Lock;
 
 	/**
 	 * KeyValue的实现类，代表一行中的某个key-value对 raw数据采用String来存储 之后根据情况返回对应的long获得double
@@ -336,10 +336,10 @@ public class OrderSystemImpl implements OrderSystem {
 	 * 根据参数新建新建文件 目录等操作
 	 */
 	public OrderSystemImpl() {
-		query1Lock = new ReentrantLock();
-		query2Lock = new ReentrantLock();
-		query3Lock = new ReentrantLock();
-		query4Lock = new ReentrantLock();
+//		query1Lock = new ReentrantLock();
+//		query2Lock = new ReentrantLock();
+//		query3Lock = new ReentrantLock();
+//		query4Lock = new ReentrantLock();
 	}
 
 	public static void main(String[] args) throws IOException, InterruptedException {
@@ -696,7 +696,7 @@ public class OrderSystemImpl implements OrderSystem {
 		Row orderData = null;
 		int index = indexFor(hashWithDistrub(orderId), CommonConstants.ORDER_SPLIT_SIZE);
 		String orderFile = this.query1Path+File.separator+index;
-		query1Lock.lock();
+//		query1Lock.lock();
 		try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.INDEX_BLOCK_SIZE)) {
 			String line = reader.readLine();
 			Row kvMap;
@@ -712,9 +712,10 @@ public class OrderSystemImpl implements OrderSystem {
 
 		} catch (IOException e) {
 			// 忽略
-		} finally {
-			query1Lock.unlock();
-		}
+		} 
+//		finally {
+//			query1Lock.unlock();
+//		}
 		if (orderData == null) {
 			return null;
 		}
@@ -830,7 +831,7 @@ public class OrderSystemImpl implements OrderSystem {
 		});
 		int index = indexFor(hashWithDistrub(buyerid), CommonConstants.ORDER_SPLIT_SIZE);
 		String orderFile = this.query2Path + File.separator + index;
-		query2Lock.lock();
+//		query2Lock.lock();
 		try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.INDEX_BLOCK_SIZE)) {
 			String line = reader.readLine();
 			Row kvMap;
@@ -847,9 +848,10 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 		} catch (IOException e) {
 			// 忽略
-		} finally {
-			query2Lock.unlock();
-		}
+		} 
+//		finally {
+//			query2Lock.unlock();
+//		}
 		
 		return new Iterator<OrderSystem.Result>() {
 
@@ -893,7 +895,7 @@ public class OrderSystemImpl implements OrderSystem {
 		});
 		int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
 		String orderFile = this.query3Path + File.separator + index;
-		query3Lock.lock();
+//		query3Lock.lock();
 		try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.INDEX_BLOCK_SIZE)) {
 			String line = reader.readLine();
 			Row kvMap;
@@ -908,9 +910,10 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 		} catch (IOException e) {
 			// 忽略
-		} finally {
-			query3Lock.unlock();
-		}
+		} 
+//		finally {
+//			query3Lock.unlock();
+//		}
 		
 
 		return new Iterator<OrderSystem.Result>() {
@@ -939,7 +942,7 @@ public class OrderSystemImpl implements OrderSystem {
 		List<Row> ordersData = new ArrayList<>(1000);
 		int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
 		String orderFile = this.query3Path + File.separator + index;
-		query4Lock.lock();
+//		query4Lock.lock();
 		try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.INDEX_BLOCK_SIZE)) {
 			String line = reader.readLine();
 			Row kvMap;
@@ -954,9 +957,10 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 		} catch (IOException e) {
 			// 忽略
-		} finally {
-			query4Lock.unlock();
-		}
+		} 
+//		finally {
+//			query4Lock.unlock();
+//		}
 		
 		
 		HashSet<String> queryingKeys = new HashSet<String>();
