@@ -15,10 +15,10 @@ public class CommonConstants {
 	public static final String NEW_LINE = System.getProperty("line.separator");
 	
 	// order文件被切割的份数 保持2^n
-	public static final int ORDER_SPLIT_SIZE = 32768;
+	public static final int ORDER_SPLIT_SIZE = 16384;
 	
 	// 买家 商品文件切割份数
-	public static final int OTHER_SPLIT_SIZE = 2048;
+	public static final int OTHER_SPLIT_SIZE = 512;
 	
 	public static final String QUERY1_PREFIX = "query1";
 	public static final String QUERY2_PREFIX = "query2";
