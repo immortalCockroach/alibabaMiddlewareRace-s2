@@ -49,21 +49,21 @@ public class OrderSystemImpl implements OrderSystem {
 	private String goodsPath;
 	
 	private ExtendBufferedWriter[] query1Writers;
-	private long[] query1Offset;
+	private int[] query1Offset;
 	private ExtendBufferedWriter[] query1IndexWriters;
 	private ExtendBufferedWriter[] query2Writers;
-	private long[] query2Offset;
+	private int[] query2Offset;
 	private ExtendBufferedWriter[] query2IndexWriters;
 	private ExtendBufferedWriter[] query3Writers;
-	private long[] query3Offset;
+	private int[] query3Offset;
 	private ExtendBufferedWriter[] query3IndexWriters;
 //	private BufferedWriter[] query4Writers;
 	
 	private ExtendBufferedWriter[] buyersWriters;
-	private long[] buyersOffset;
+	private int[] buyersOffset;
 	private ExtendBufferedWriter[] buyersIndexWriters;
 	private ExtendBufferedWriter[] goodsWriters;
-	private long[] goodsOffset;
+	private int[] goodsOffset;
 	private ExtendBufferedWriter[] goodsIndexWriters;
 	
 //	private Lock query1Lock;
@@ -190,7 +190,7 @@ public class OrderSystemImpl implements OrderSystem {
 		private String hashId;
 		private ExtendBufferedWriter[] writers;
 		private ExtendBufferedWriter[] offSetwriters;
-		private long[] writersOffset;
+		private int[] writersOffset;
 		private Collection<String> files;
 		private CountDownLatch latch;
 		private final int BUCKET_SIZE;
@@ -198,7 +198,7 @@ public class OrderSystemImpl implements OrderSystem {
 		private String[] identities;
 		
 		public HashIndexCreator(String hashId, ExtendBufferedWriter[] writers, ExtendBufferedWriter[] offsetWriters,
-				long[] writersOffset, Collection<String> files, int bUCKET_SIZE, int blockSize, CountDownLatch latch, String[] identities) {
+				int[] writersOffset, Collection<String> files, int bUCKET_SIZE, int blockSize, CountDownLatch latch, String[] identities) {
 			super();
 			this.latch = latch;
 			this.hashId = hashId;
@@ -220,8 +220,8 @@ public class OrderSystemImpl implements OrderSystem {
 				int index;
 				ExtendBufferedWriter bw;
 				ExtendBufferedWriter offsetBw;
-				long offset;
-				long length;
+				int offset;
+				int length;
 				try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, BLOCK_SIZE)) {
 					String line = reader.readLine();
 					while (line != null) {
@@ -249,8 +249,9 @@ public class OrderSystemImpl implements OrderSystem {
 						}
 						offSetMsg.append(":");
 						offSetMsg.append(offset);
+						offSetMsg.append("\t");
 						// 写入对应的索引文件 此处不换行
-						offsetBw.write(offSetMsg.toString() + "\t");
+						offsetBw.write(offSetMsg.toString());
 						
 						// 此处表示下一个offSet的开始 所以放到后面
 						offset += (length + 1);
@@ -387,12 +388,12 @@ public class OrderSystemImpl implements OrderSystem {
 //		query2Lock = new ReentrantLock();
 //		query3Lock = new ReentrantLock();
 //		query4Lock = new ReentrantLock();
-		this.query1Offset = new long[CommonConstants.ORDER_SPLIT_SIZE];
-		this.query2Offset = new long[CommonConstants.ORDER_SPLIT_SIZE];
-		this.query3Offset = new long[CommonConstants.ORDER_SPLIT_SIZE];
+		this.query1Offset = new int[CommonConstants.ORDER_SPLIT_SIZE];
+		this.query2Offset = new int[CommonConstants.ORDER_SPLIT_SIZE];
+		this.query3Offset = new int[CommonConstants.ORDER_SPLIT_SIZE];
 		
-		this.buyersOffset =  new long[CommonConstants.OTHER_SPLIT_SIZE];
-		this.goodsOffset =  new long[CommonConstants.OTHER_SPLIT_SIZE];
+		this.buyersOffset =  new int[CommonConstants.OTHER_SPLIT_SIZE];
+		this.goodsOffset =  new int[CommonConstants.OTHER_SPLIT_SIZE];
 	}
 
 	public static void main(String[] args) throws IOException, InterruptedException {
@@ -534,14 +535,14 @@ public class OrderSystemImpl implements OrderSystem {
 		return result;
 	}
 	
-	List<Long> createListFromLongLine(String longLine, String k) {
+	List<Integer> createListFromLongLine(String longLine, String k) {
 		String[] kvs = longLine.split("\t");
-		List<Long> result = new ArrayList<>(1024);
+		List<Integer> result = new ArrayList<>(1024);
 		for (String rawkv : kvs) {
 			int p = rawkv.indexOf(':');
 			String key = rawkv.substring(0, p);
 			if (k.equals(key)) {
-				result.add(Long.parseLong(rawkv.substring(p + 1)));
+				result.add(Integer.parseInt(rawkv.substring(p + 1)));
 			}	
 		}
 		
@@ -811,7 +812,7 @@ public class OrderSystemImpl implements OrderSystem {
 			if (!indexMap.containsKey(sOrderId)) {
 				return null;
 			}
-			long offset = Long.parseLong(indexMap.get(sOrderId));
+			int offset = Integer.parseInt(indexMap.get(sOrderId));
 			try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
 				orderFileReader.seek(offset);
 				line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
@@ -899,7 +900,7 @@ public class OrderSystemImpl implements OrderSystem {
 		HashMap<String,String> indexMap = null;
 		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(buyerIndexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 			indexMap = createMapFromLongLine(indexFileReader.readLine());
-			long offset = Long.parseLong(indexMap.get(buyerId));
+			int offset = Integer.parseInt(indexMap.get(buyerId));
 			try (RandomAccessFile buyerFileReader = new RandomAccessFile(buyerFile, "r")) {
 				buyerFileReader.seek(offset);
 				String line = StringUtils.convertISOToUTF8(buyerFileReader.readLine());
@@ -923,7 +924,7 @@ public class OrderSystemImpl implements OrderSystem {
 		String goodIndexFile = this.goodsPath + File.separator + index + CommonConstants.INDEX_SUFFIX;
 		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(goodIndexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 			indexMap = createMapFromLongLine(indexFileReader.readLine());
-			long offset = Long.parseLong(indexMap.get(goodId));
+			int offset = Integer.parseInt(indexMap.get(goodId));
 			try (RandomAccessFile goodFileReader = new RandomAccessFile(goodFile, "r")) {
 				goodFileReader.seek(offset);
 				String line = StringUtils.convertISOToUTF8(goodFileReader.readLine());;
@@ -967,7 +968,7 @@ public class OrderSystemImpl implements OrderSystem {
 		String orderFile = this.query2Path + File.separator + index;
 //		query2Lock.lock();
 		HashMap<String,String> indexMap = null;
-		ArrayList<Long> recordOffSets = new ArrayList<>(1024);
+		ArrayList<Integer> recordOffSets = new ArrayList<>(1024);
 		String start = buyerid + startTime;
 		String end = buyerid + endTime;
 //		System.out.println(recordOffSets.size());
@@ -979,7 +980,7 @@ public class OrderSystemImpl implements OrderSystem {
 				indexMap = createMapFromLongLine(line);
 				for (Map.Entry<String, String> e : indexMap.entrySet()) {
 					if (e.getKey().compareTo(start) >= 0 && e.getKey().compareTo(end) < 0) {
-						recordOffSets.add(Long.parseLong(e.getValue()));
+						recordOffSets.add(Integer.parseInt(e.getValue()));
 					}
 				}
 				
@@ -987,7 +988,7 @@ public class OrderSystemImpl implements OrderSystem {
 	//			System.out.println(recordOffSets.size());
 					Row kvMap;
 					try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
-						for (long offset : recordOffSets) {
+						for (int offset : recordOffSets) {
 							orderFileReader.seek(offset);
 							line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
 			//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
@@ -1052,7 +1053,7 @@ public class OrderSystemImpl implements OrderSystem {
 //		query3Lock.lock();
 //		System.out.println("index:" + index);
 		
-		List<Long> recordOffSets = null;
+		List<Integer> recordOffSets = null;
 		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 			String line = indexFileReader.readLine();
 			if(line != null) {
@@ -1061,7 +1062,7 @@ public class OrderSystemImpl implements OrderSystem {
 				if (recordOffSets.size() > 0) {
 					Row kvMap;
 					try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
-						for (long offset : recordOffSets) {
+						for (int offset : recordOffSets) {
 							orderFileReader.seek(offset);
 							line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
 			//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
@@ -1110,7 +1111,7 @@ public class OrderSystemImpl implements OrderSystem {
 		String orderFile = this.query3Path + File.separator + index;
 		String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 //		query4Lock.lock();
-		List<Long> recordOffSets = null;
+		List<Integer> recordOffSets = null;
 		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 			String line = indexFileReader.readLine();
 			if (line != null) {
@@ -1119,7 +1120,7 @@ public class OrderSystemImpl implements OrderSystem {
 				if(recordOffSets.size() > 0) {
 					Row kvMap;
 					try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
-						for (long offset : recordOffSets) {
+						for (int offset : recordOffSets) {
 							orderFileReader.seek(offset);
 							line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
 			//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
