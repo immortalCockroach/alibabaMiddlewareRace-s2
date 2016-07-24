@@ -227,7 +227,7 @@ public class OrderSystemImpl implements OrderSystem {
 						StringBuilder offSetMsg = new StringBuilder();
 						kvMap = createKVMapFromLine(line);
 						// windows测试 提交的时候修改为1
-						offset = line.getBytes().length + 2;
+						offset = line.getBytes().length + 1;
 						// orderId一定存在且为long
 						orderKV = kvMap.getKV(hashId);
 						index = indexFor(
