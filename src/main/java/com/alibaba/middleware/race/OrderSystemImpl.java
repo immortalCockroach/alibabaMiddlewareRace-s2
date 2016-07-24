@@ -968,7 +968,10 @@ public class OrderSystemImpl implements OrderSystem {
 //		System.out.println(recordOffSets.size());
 //		System.out.println(indexFile);
 		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
-			indexMap = createMapFromLongLine(indexFileReader.readLine());
+			String s = indexFileReader.readLine();
+			System.out.println("q2:"+buyerid);
+			System.out.println(s);
+			indexMap = createMapFromLongLine(s);
 			for (Map.Entry<String, String> e : indexMap.entrySet()) {
 				if (e.getKey().compareTo(start) >= 0 && e.getKey().compareTo(end) < 0) {
 					recordOffSets.add(Long.parseLong(e.getValue()));
@@ -1044,7 +1047,10 @@ public class OrderSystemImpl implements OrderSystem {
 		
 		List<Long> recordOffSets = null;
 		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
-			recordOffSets = createListFromLongLine(indexFileReader.readLine(), goodid);
+			String s = indexFileReader.readLine();
+			System.out.println("q3:"+goodid);
+			System.out.println(s);
+			recordOffSets = createListFromLongLine(s, goodid);
 
 			if (recordOffSets.size() > 0) {
 				Row kvMap;
@@ -1100,7 +1106,7 @@ public class OrderSystemImpl implements OrderSystem {
 		List<Long> recordOffSets = null;
 		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 			String s = indexFileReader.readLine();
-			System.out.println(goodid);
+			System.out.println("q4:"+goodid);
 			System.out.println(s);
 			recordOffSets = createListFromLongLine(s, goodid);
 
