@@ -221,13 +221,14 @@ public class OrderSystemImpl implements OrderSystem {
 				ExtendBufferedWriter bw;
 				ExtendBufferedWriter offsetBw;
 				long offset;
+				long length;
 				try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, BLOCK_SIZE)) {
 					String line = reader.readLine();
 					while (line != null) {
 						StringBuilder offSetMsg = new StringBuilder();
 						kvMap = createKVMapFromLine(line);
 						// windows测试 提交的时候修改为1
-						offset = line.getBytes().length + 1;
+						length = line.getBytes().length;
 						// orderId一定存在且为long
 						orderKV = kvMap.getKV(hashId);
 						index = indexFor(
@@ -252,7 +253,7 @@ public class OrderSystemImpl implements OrderSystem {
 						offsetBw.write(offSetMsg.toString() + "\t");
 						
 						// 此处表示下一个offSet的开始 所以放到后面
-						offset += (line.getBytes().length + 2);
+						offset += (length + 1);
 						writersOffset[index] = offset;
 						bw.write(line);
 						bw.newLine();
@@ -418,13 +419,13 @@ public class OrderSystemImpl implements OrderSystem {
 		os.construct(orderFiles, buyerFiles, goodFiles, storeFolders);
 
 		// 用例
-//		long start = System.currentTimeMillis();
-//		long orderid = 609670049;
-//		System.out.println("\n查询订单号为" + orderid + "的订单");
-//		List<String> keys = new ArrayList<>();
-//		keys.add("description");
-//		System.out.println(os.queryOrder(orderid, keys));
-//		System.out.println(System.currentTimeMillis()-start);
+		long start = System.currentTimeMillis();
+		long orderid = 609670049;
+		System.out.println("\n查询订单号为" + orderid + "的订单");
+		List<String> keys = new ArrayList<>();
+		keys.add("description");
+		System.out.println(os.queryOrder(orderid, keys));
+		System.out.println(System.currentTimeMillis()-start);
 //		System.out.println("\n查询订单号为" + orderid + "的订单，查询的keys为空，返回订单，但没有kv数据");
 //		System.out.println(os.queryOrder(orderid, new ArrayList<String>()));
 
@@ -469,12 +470,12 @@ public class OrderSystemImpl implements OrderSystem {
 //			System.out.println(it.next());
 //		}
 		//
-		long start = System.currentTimeMillis();
-		String goodid = "al-9c4c-ac9ed4b6ad35";
-		String attr = "offprice";
-		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
-		System.out.println(os.sumOrdersByGood(goodid, attr));
-		System.out.println(System.currentTimeMillis() -start);
+//		long start = System.currentTimeMillis();
+//		String goodid = "al-9c4c-ac9ed4b6ad35";
+//		String attr = "offprice";
+//		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
+//		System.out.println(os.sumOrdersByGood(goodid, attr));
+//		System.out.println(System.currentTimeMillis() -start);
 //		String goodid = "good_d191eeeb-fed1-4334-9c77-3ee6d6d66aff";
 //		String attr = "app_order_33_0";
 //		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
