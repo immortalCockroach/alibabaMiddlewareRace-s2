@@ -397,8 +397,8 @@ public class OrderSystemImpl implements OrderSystem {
 		this.query2Offset = new long[CommonConstants.ORDER_SPLIT_SIZE];
 //		this.query2Cache = new SimpleLRUCache<>(256);
 		this.query3Offset = new long[CommonConstants.ORDER_SPLIT_SIZE];
-		this.query3Cache = new SimpleLRUCache<>(1024);
-		this.query4Cache = new SimpleLRUCache<>(1024); 
+		this.query3Cache = new SimpleLRUCache<>(512);
+		this.query4Cache = new SimpleLRUCache<>(512); 
 		this.buyersOffset =  new long[CommonConstants.OTHER_SPLIT_SIZE];
 		this.buyersCache = new SimpleLRUCache<>(4096);
 		
