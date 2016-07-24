@@ -801,6 +801,7 @@ public class OrderSystemImpl implements OrderSystem {
 		HashMap<String,String> indexMap = null;
 		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 			indexMap = createMapFromLongLine(indexFileReader.readLine());
+			System.out.println(indexMap.get(String.valueOf(orderId)));
 			long offset = Long.parseLong(indexMap.get(String.valueOf(orderId)));
 			try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
 				orderFileReader.seek(offset);
