@@ -511,6 +511,7 @@ public class OrderSystemImpl implements OrderSystem {
 			String key = rawkv.substring(0, p);
 			String value = rawkv.substring(p + 1);
 			if (key.length() == 0 || value.length() == 0) {
+				System.out.println(line);
 				throw new RuntimeException("Bad data:" + line);
 			}
 			KV kv = new KV(key, value);
