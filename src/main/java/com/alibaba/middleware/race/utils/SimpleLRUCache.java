@@ -20,7 +20,7 @@ public class SimpleLRUCache<K, V> {
 	public SimpleLRUCache(int cacheSize) {
         MAX_CACHE_SIZE = cacheSize;
         lock = new ReentrantLock();
-        hashMap = new HashMap<K, Entry<K, V>>();
+        hashMap = new HashMap<K, Entry<K, V>>(cacheSize);
     }
 
 	public void put(K key, V value) {

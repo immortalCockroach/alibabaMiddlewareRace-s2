@@ -1,7 +1,5 @@
 package com.alibaba.middleware.race;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -16,13 +14,12 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import com.alibaba.middleware.race.utils.CommonConstants;
 import com.alibaba.middleware.race.utils.ExtendBufferedReader;
 import com.alibaba.middleware.race.utils.ExtendBufferedWriter;
 import com.alibaba.middleware.race.utils.IOUtils;
+import com.alibaba.middleware.race.utils.SimpleLRUCache;
 import com.alibaba.middleware.race.utils.StringUtils;
 
 /**
@@ -51,9 +48,13 @@ public class OrderSystemImpl implements OrderSystem {
 	private ExtendBufferedWriter[] query1Writers;
 	private long[] query1Offset;
 	private ExtendBufferedWriter[] query1IndexWriters;
+	private SimpleLRUCache<Long, String> query1Cache;
+	
 	private ExtendBufferedWriter[] query2Writers;
 	private long[] query2Offset;
 	private ExtendBufferedWriter[] query2IndexWriters;
+//	private SimpleLRUCache<String, List<Long>> query2Cache;
+	
 	private ExtendBufferedWriter[] query3Writers;
 	private long[] query3Offset;
 	private ExtendBufferedWriter[] query3IndexWriters;
@@ -62,9 +63,11 @@ public class OrderSystemImpl implements OrderSystem {
 	private ExtendBufferedWriter[] buyersWriters;
 	private long[] buyersOffset;
 	private ExtendBufferedWriter[] buyersIndexWriters;
+	private SimpleLRUCache<String, String> buyersCache;
 	private ExtendBufferedWriter[] goodsWriters;
 	private long[] goodsOffset;
 	private ExtendBufferedWriter[] goodsIndexWriters;
+	private SimpleLRUCache<String, String> goodsCache;
 	
 //	private Lock query1Lock;
 //	private Lock query2Lock;
@@ -389,11 +392,15 @@ public class OrderSystemImpl implements OrderSystem {
 //		query3Lock = new ReentrantLock();
 //		query4Lock = new ReentrantLock();
 		this.query1Offset = new long[CommonConstants.ORDER_SPLIT_SIZE];
+		this.query1Cache = new SimpleLRUCache<>(128);
 		this.query2Offset = new long[CommonConstants.ORDER_SPLIT_SIZE];
+//		this.query2Cache = new SimpleLRUCache<>(256);
 		this.query3Offset = new long[CommonConstants.ORDER_SPLIT_SIZE];
 		
 		this.buyersOffset =  new long[CommonConstants.OTHER_SPLIT_SIZE];
+		this.buyersCache = new SimpleLRUCache<>(2048);
 		this.goodsOffset =  new long[CommonConstants.OTHER_SPLIT_SIZE];
+		this.goodsCache = new SimpleLRUCache<>(2048);
 	}
 
 	public static void main(String[] args) throws IOException, InterruptedException {
@@ -530,6 +537,20 @@ public class OrderSystemImpl implements OrderSystem {
 			String key = rawkv.substring(0, p);
 			String value = rawkv.substring(p + 1);
 			result.put(key, value);
+		}
+		
+		return result;
+	}
+	
+	HashMap<String,String> createMapFromLongLineWithPrefixKey(String longLine, String k) {
+		String[] kvs = longLine.split("\t");
+		HashMap<String,String> result = new HashMap<>(1024);
+		for (String rawkv : kvs) {
+			int p = rawkv.indexOf(':');
+			String key = rawkv.substring(0, p);
+			if(key.startsWith(k)) {
+				result.put(key, rawkv.substring(p + 1));
+			}
 		}
 		
 		return result;
@@ -795,35 +816,41 @@ public class OrderSystemImpl implements OrderSystem {
 		// }
 		Row orderData = null;
 		int index = indexFor(hashWithDistrub(orderId), CommonConstants.ORDER_SPLIT_SIZE);
-		
-		String indexFile = this.query1Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
-		String orderFile = this.query1Path + File.separator + index;
-//		query1Lock.lock();
-		HashMap<String,String> indexMap = null;
-		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
-			// 可能index文件就没有
-			String line = indexFileReader.readLine();
-			if (line == null) {
-				return null;
-			}
-			indexMap = createMapFromLongLine(line);
-			String sOrderId = String.valueOf(orderId);
-			// 查询不存在的orderId时直接返回
-			if (!indexMap.containsKey(sOrderId)) {
-				return null;
-			}
-			Long offset = Long.parseLong(indexMap.get(sOrderId));
-			try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
-				orderFileReader.seek(offset);
-				line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
-//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
-				orderData = createKVMapFromLine(line);
+		String cachedString = query1Cache.get(orderId);
+		if ( cachedString != null) {
+			orderData = createKVMapFromLine(cachedString);
+		} else {
+			String indexFile = this.query1Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
+			String orderFile = this.query1Path + File.separator + index;
+	//		query1Lock.lock();
+			HashMap<String,String> indexMap = null;
+			try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
+				// 可能index文件就没有
 				
-			} catch (IOException e) {
-				// 忽略
-			} 
-		} catch(IOException e) {
-			
+				String line = indexFileReader.readLine();
+				if (line == null) {
+					return null;
+				}
+				indexMap = createMapFromLongLine(line);
+				String sOrderId = String.valueOf(orderId);
+				// 查询不存在的orderId时直接返回
+				if (!indexMap.containsKey(sOrderId)) {
+					return null;
+				}
+				Long offset = Long.parseLong(indexMap.get(sOrderId));
+				try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
+					orderFileReader.seek(offset);
+					line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
+	//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
+					orderData = createKVMapFromLine(line);
+					query1Cache.put(orderId, line);
+					
+				} catch (IOException e) {
+					// 忽略
+				} 
+			} catch(IOException e) {
+				
+			}
 		}
 		
 
@@ -894,23 +921,29 @@ public class OrderSystemImpl implements OrderSystem {
 		Row buyerData = null;
 		
 		String buyerId = buyerQuery.getKV("buyerid").rawValue;
-		int index = indexFor(hashWithDistrub(buyerId), CommonConstants.OTHER_SPLIT_SIZE);
-		String buyerFile = this.buyersPath + File.separator + index;
-		String buyerIndexFile = this.buyersPath + File.separator + index + CommonConstants.INDEX_SUFFIX;
-		HashMap<String,String> indexMap = null;
-		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(buyerIndexFile, CommonConstants.INDEX_BLOCK_SIZE)){
-			indexMap = createMapFromLongLine(indexFileReader.readLine());
-			long offset = Long.parseLong(indexMap.get(buyerId));
-			try (RandomAccessFile buyerFileReader = new RandomAccessFile(buyerFile, "r")) {
-				buyerFileReader.seek(offset);
-				String line = StringUtils.convertISOToUTF8(buyerFileReader.readLine());
-				buyerData = createKVMapFromLine(line);
-
-			} catch (IOException e) {
-				// 忽略
-			} 
-		} catch(IOException e) {
-			
+		String cachedString = buyersCache.get(buyerId);
+		if (cachedString != null) {
+			buyerData = createKVMapFromLine(cachedString);
+		} else {
+			int index = indexFor(hashWithDistrub(buyerId), CommonConstants.OTHER_SPLIT_SIZE);
+			String buyerFile = this.buyersPath + File.separator + index;
+			String buyerIndexFile = this.buyersPath + File.separator + index + CommonConstants.INDEX_SUFFIX;
+			HashMap<String,String> indexMap = null;
+			try(ExtendBufferedReader indexFileReader = IOUtils.createReader(buyerIndexFile, CommonConstants.INDEX_BLOCK_SIZE)){
+				indexMap = createMapFromLongLine(indexFileReader.readLine());
+				long offset = Long.parseLong(indexMap.get(buyerId));
+				try (RandomAccessFile buyerFileReader = new RandomAccessFile(buyerFile, "r")) {
+					buyerFileReader.seek(offset);
+					String line = StringUtils.convertISOToUTF8(buyerFileReader.readLine());
+					buyerData = createKVMapFromLine(line);
+					buyersCache.put(buyerId, line);
+	
+				} catch (IOException e) {
+					// 忽略
+				} 
+			} catch(IOException e) {
+				
+			}
 		}
 
 
@@ -919,22 +952,27 @@ public class OrderSystemImpl implements OrderSystem {
 		// ComparableKeys(comparableKeysOrderingByGood, goodQuery));
 		Row goodData = null;
 		String goodId = goodQuery.getKV("goodid").rawValue;
-		index = indexFor(hashWithDistrub(goodId), CommonConstants.OTHER_SPLIT_SIZE);
-		String goodFile = this.goodsPath + File.separator + index;
-		String goodIndexFile = this.goodsPath + File.separator + index + CommonConstants.INDEX_SUFFIX;
-		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(goodIndexFile, CommonConstants.INDEX_BLOCK_SIZE)){
-			indexMap = createMapFromLongLine(indexFileReader.readLine());
-			long offset = Long.parseLong(indexMap.get(goodId));
-			try (RandomAccessFile goodFileReader = new RandomAccessFile(goodFile, "r")) {
-				goodFileReader.seek(offset);
-				String line = StringUtils.convertISOToUTF8(goodFileReader.readLine());;
-				goodData = createKVMapFromLine(line);
-
-			} catch (IOException e) {
-				// 忽略
-			} 
-		} catch(IOException e) {
-			
+		cachedString = goodsCache.get(goodId);
+		if (cachedString != null) {
+			goodData = createKVMapFromLine(cachedString);
+		} else {		
+			int index = indexFor(hashWithDistrub(goodId), CommonConstants.OTHER_SPLIT_SIZE);
+			String goodFile = this.goodsPath + File.separator + index;
+			String goodIndexFile = this.goodsPath + File.separator + index + CommonConstants.INDEX_SUFFIX;
+			try(ExtendBufferedReader indexFileReader = IOUtils.createReader(goodIndexFile, CommonConstants.INDEX_BLOCK_SIZE)){
+				HashMap<String,String> indexMap = createMapFromLongLine(indexFileReader.readLine());
+				long offset = Long.parseLong(indexMap.get(goodId));
+				try (RandomAccessFile goodFileReader = new RandomAccessFile(goodFile, "r")) {
+					goodFileReader.seek(offset);
+					String line = StringUtils.convertISOToUTF8(goodFileReader.readLine());;
+					goodData = createKVMapFromLine(line);
+					goodsCache.put(goodId, line);
+				} catch (IOException e) {
+					// 忽略
+				} 
+			} catch(IOException e) {
+				
+			}
 		}
 		
 		return ResultImpl.createResultRow(orderData, buyerData, goodData, createQueryKeys(keys));
@@ -977,7 +1015,7 @@ public class OrderSystemImpl implements OrderSystem {
 			String line = indexFileReader.readLine();
 			
 			if(line != null) {
-				indexMap = createMapFromLongLine(line);
+				indexMap = createMapFromLongLineWithPrefixKey(line, buyerid);
 				for (Map.Entry<String, String> e : indexMap.entrySet()) {
 					if (e.getKey().compareTo(start) >= 0 && e.getKey().compareTo(end) < 0) {
 						recordOffSets.add(Long.parseLong(e.getValue()));
