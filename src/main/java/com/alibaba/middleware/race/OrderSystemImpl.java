@@ -1042,7 +1042,7 @@ public class OrderSystemImpl implements OrderSystem {
 //		query3Lock.lock();
 //		System.out.println("index:" + index);
 		
-		List<Long> recordOffSets = new ArrayList<>(1024);
+		List<Long> recordOffSets = null;
 		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 			recordOffSets = createListFromLongLine(indexFileReader.readLine(), goodid);
 
@@ -1097,9 +1097,12 @@ public class OrderSystemImpl implements OrderSystem {
 		String orderFile = this.query3Path + File.separator + index;
 		String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 //		query4Lock.lock();
-		List<Long> recordOffSets = new ArrayList<>(1024);
+		List<Long> recordOffSets = null;
 		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
-			recordOffSets = createListFromLongLine(indexFileReader.readLine(), goodid);
+			String s = indexFileReader.readLine();
+			System.out.println(goodid);
+			System.out.println(s);
+			recordOffSets = createListFromLongLine(s, goodid);
 
 			if(recordOffSets.size() > 0) {
 				Row kvMap;
