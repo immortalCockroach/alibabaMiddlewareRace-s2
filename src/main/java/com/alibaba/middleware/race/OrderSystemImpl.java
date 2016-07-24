@@ -393,17 +393,17 @@ public class OrderSystemImpl implements OrderSystem {
 //		query3Lock = new ReentrantLock();
 //		query4Lock = new ReentrantLock();
 		this.query1Offset = new long[CommonConstants.ORDER_SPLIT_SIZE];
-		this.query1Cache = new SimpleLRUCache<>(128);
+		this.query1Cache = new SimpleLRUCache<>(256);
 		this.query2Offset = new long[CommonConstants.ORDER_SPLIT_SIZE];
 //		this.query2Cache = new SimpleLRUCache<>(256);
 		this.query3Offset = new long[CommonConstants.ORDER_SPLIT_SIZE];
-		this.query3Cache = new SimpleLRUCache<>(256);
-		this.query4Cache = new SimpleLRUCache<>(256); 
+		this.query3Cache = new SimpleLRUCache<>(512);
+		this.query4Cache = new SimpleLRUCache<>(512); 
 		this.buyersOffset =  new long[CommonConstants.OTHER_SPLIT_SIZE];
-		this.buyersCache = new SimpleLRUCache<>(2048);
+		this.buyersCache = new SimpleLRUCache<>(4096);
 		
 		this.goodsOffset =  new long[CommonConstants.OTHER_SPLIT_SIZE];
-		this.goodsCache = new SimpleLRUCache<>(2048);
+		this.goodsCache = new SimpleLRUCache<>(4096);
 	}
 
 	public static void main(String[] args) throws IOException, InterruptedException {
