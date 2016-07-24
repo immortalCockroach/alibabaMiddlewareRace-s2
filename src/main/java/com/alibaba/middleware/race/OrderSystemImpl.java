@@ -801,8 +801,12 @@ public class OrderSystemImpl implements OrderSystem {
 		HashMap<String,String> indexMap = null;
 		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 			indexMap = createMapFromLongLine(indexFileReader.readLine());
-			System.out.println(indexMap.get(String.valueOf(orderId)));
-			long offset = Long.parseLong(indexMap.get(String.valueOf(orderId)));
+			String sOrderId = String.valueOf(orderId);
+			// 查询不存在的orderId时直接返回
+			if (!indexMap.containsKey(sOrderId)) {
+				return null;
+			}
+			long offset = Long.parseLong(indexMap.get(sOrderId));
 			try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
 				orderFileReader.seek(offset);
 				String line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
@@ -970,20 +974,23 @@ public class OrderSystemImpl implements OrderSystem {
 					recordOffSets.add(Long.parseLong(e.getValue()));
 				}
 			}
+			
+			if(recordOffSets.size() > 0) {
 //			System.out.println(recordOffSets.size());
-			Row kvMap;
-			try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
-				for (long offset : recordOffSets) {
-					orderFileReader.seek(offset);
-					String line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
-	//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
-					kvMap = createKVMapFromLine(line);
-					buyerOrderQueue.offer(kvMap);
-				}
-				
-			} catch (IOException e) {
-				// 忽略
-			} 
+				Row kvMap;
+				try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
+					for (long offset : recordOffSets) {
+						orderFileReader.seek(offset);
+						String line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
+		//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
+						kvMap = createKVMapFromLine(line);
+						buyerOrderQueue.offer(kvMap);
+					}
+					
+				} catch (IOException e) {
+					// 忽略
+				} 
+			}
 		} catch(IOException e) {
 			
 		}
@@ -1039,20 +1046,21 @@ public class OrderSystemImpl implements OrderSystem {
 		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 			recordOffSets = createListFromLongLine(indexFileReader.readLine(), goodid);
 
-
-			Row kvMap;
-			try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
-				for (long offset : recordOffSets) {
-					orderFileReader.seek(offset);
-					String line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
-	//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
-					kvMap = createKVMapFromLine(line);
-					salerGoodsQueue.offer(kvMap);
-				}
-				
-			} catch (IOException e) {
-				// 忽略
-			} 
+			if (recordOffSets.size() > 0) {
+				Row kvMap;
+				try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
+					for (long offset : recordOffSets) {
+						orderFileReader.seek(offset);
+						String line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
+		//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
+						kvMap = createKVMapFromLine(line);
+						salerGoodsQueue.offer(kvMap);
+					}
+					
+				} catch (IOException e) {
+					// 忽略
+				} 
+			}
 		} catch(IOException e) {
 			
 		}
@@ -1093,19 +1101,21 @@ public class OrderSystemImpl implements OrderSystem {
 		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 			recordOffSets = createListFromLongLine(indexFileReader.readLine(), goodid);
 
-			Row kvMap;
-			try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
-				for (long offset : recordOffSets) {
-					orderFileReader.seek(offset);
-					String line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
-	//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
-					kvMap = createKVMapFromLine(line);
-					ordersData.add(kvMap);
+			if(recordOffSets.size() > 0) {
+				Row kvMap;
+				try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
+					for (long offset : recordOffSets) {
+						orderFileReader.seek(offset);
+						String line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
+		//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
+						kvMap = createKVMapFromLine(line);
+						ordersData.add(kvMap);
+					}
+					
+				} catch (IOException e) {
+					// 忽略
 				}
-				
-			} catch (IOException e) {
-				// 忽略
-			} 
+			}
 		} catch(IOException e) {
 			
 		}
