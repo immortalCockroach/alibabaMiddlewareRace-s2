@@ -1192,7 +1192,11 @@ public class OrderSystemImpl implements OrderSystem {
 						} catch (IOException e) {
 							// 忽略
 						}
+					} else {
+						return null;
 					}
+				} else {
+					return null;
 				}
 			} catch(IOException e) {
 				
