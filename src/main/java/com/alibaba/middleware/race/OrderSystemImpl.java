@@ -58,8 +58,9 @@ public class OrderSystemImpl implements OrderSystem {
 	private ExtendBufferedWriter[] query3Writers;
 	private long[] query3Offset;
 	private ExtendBufferedWriter[] query3IndexWriters;
+	private SimpleLRUCache<String, List<String>> query3Cache;
 //	private BufferedWriter[] query4Writers;
-	
+	private SimpleLRUCache<String, List<String>> query4Cache;
 	private ExtendBufferedWriter[] buyersWriters;
 	private long[] buyersOffset;
 	private ExtendBufferedWriter[] buyersIndexWriters;
@@ -396,9 +397,11 @@ public class OrderSystemImpl implements OrderSystem {
 		this.query2Offset = new long[CommonConstants.ORDER_SPLIT_SIZE];
 //		this.query2Cache = new SimpleLRUCache<>(256);
 		this.query3Offset = new long[CommonConstants.ORDER_SPLIT_SIZE];
-		
+		this.query3Cache = new SimpleLRUCache<>(256);
+		this.query4Cache = new SimpleLRUCache<>(256); 
 		this.buyersOffset =  new long[CommonConstants.OTHER_SPLIT_SIZE];
 		this.buyersCache = new SimpleLRUCache<>(2048);
+		
 		this.goodsOffset =  new long[CommonConstants.OTHER_SPLIT_SIZE];
 		this.goodsCache = new SimpleLRUCache<>(2048);
 	}
@@ -1085,36 +1088,46 @@ public class OrderSystemImpl implements OrderSystem {
 
 		});
 		
-		int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
-		String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
-		String orderFile = this.query3Path + File.separator + index;
+
 //		query3Lock.lock();
 //		System.out.println("index:" + index);
-		
-		List<Long> recordOffSets = null;
-		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
-			String line = indexFileReader.readLine();
-			if(line != null) {
-				recordOffSets = createListFromLongLine(line, goodid);
-	
-				if (recordOffSets.size() > 0) {
-					Row kvMap;
-					try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
-						for (Long offset : recordOffSets) {
-							orderFileReader.seek(offset);
-							line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
-			//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
-							kvMap = createKVMapFromLine(line);
-							salerGoodsQueue.offer(kvMap);
-						}
-						
-					} catch (IOException e) {
-						// 忽略
-					} 
-				}
+		List<String> cachedStrings;
+		if ((cachedStrings = query3Cache.get(goodid)) != null) {
+			for(String s: cachedStrings) {
+				salerGoodsQueue.offer(createKVMapFromLine(s));
 			}
-		} catch(IOException e) {
-			
+		} else {
+			int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
+			String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
+			String orderFile = this.query3Path + File.separator + index;
+			List<Long> recordOffSets = null;
+			try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
+				String line = indexFileReader.readLine();
+				if(line != null) {
+					recordOffSets = createListFromLongLine(line, goodid);
+		
+					if (recordOffSets.size() > 0) {
+						cachedStrings = new ArrayList<>(recordOffSets.size());
+						Row kvMap;
+						try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
+							for (Long offset : recordOffSets) {
+								orderFileReader.seek(offset);
+								line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
+								cachedStrings.add(line);
+				//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
+								kvMap = createKVMapFromLine(line);
+								salerGoodsQueue.offer(kvMap);
+							}
+							query3Cache.put(goodid, cachedStrings);
+							
+						} catch (IOException e) {
+							// 忽略
+						} 
+					}
+				}
+			} catch(IOException e) {
+				
+			}
 		}
 //		finally {
 //			query3Lock.unlock();
@@ -1145,34 +1158,45 @@ public class OrderSystemImpl implements OrderSystem {
 
 	public KeyValue sumOrdersByGood(String goodid, String key) {
 		List<Row> ordersData = new ArrayList<>(1000);
-		int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
-		String orderFile = this.query3Path + File.separator + index;
-		String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
-//		query4Lock.lock();
-		List<Long> recordOffSets = null;
-		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
-			String line = indexFileReader.readLine();
-			if (line != null) {
-				recordOffSets = createListFromLongLine(line, goodid);
-	
-				if(recordOffSets.size() > 0) {
-					Row kvMap;
-					try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
-						for (Long offset : recordOffSets) {
-							orderFileReader.seek(offset);
-							line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
-			//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
-							kvMap = createKVMapFromLine(line);
-							ordersData.add(kvMap);
+		
+		List<String> cachedStrings;
+		if ((cachedStrings = query4Cache.get(goodid)) != null) {
+			for(String s: cachedStrings) {
+				ordersData.add(createKVMapFromLine(s));
+			}
+		} else {
+			int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
+			String orderFile = this.query3Path + File.separator + index;
+			String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
+	//		query4Lock.lock();
+			List<Long> recordOffSets = null;
+			try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
+				String line = indexFileReader.readLine();
+				if (line != null) {
+					recordOffSets = createListFromLongLine(line, goodid);
+		
+					if(recordOffSets.size() > 0) {
+						cachedStrings = new ArrayList<>(recordOffSets.size());
+						Row kvMap;
+						try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
+							for (Long offset : recordOffSets) {
+								orderFileReader.seek(offset);
+								line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
+								cachedStrings.add(line);
+				//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
+								kvMap = createKVMapFromLine(line);
+								ordersData.add(kvMap);
+							}
+							query4Cache.put(goodid, cachedStrings);
+							
+						} catch (IOException e) {
+							// 忽略
 						}
-						
-					} catch (IOException e) {
-						// 忽略
 					}
 				}
+			} catch(IOException e) {
+				
 			}
-		} catch(IOException e) {
-			
 		}
 //		finally {
 //			query4Lock.unlock();
