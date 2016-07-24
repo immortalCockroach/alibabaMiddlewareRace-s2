@@ -803,9 +803,9 @@ public class OrderSystemImpl implements OrderSystem {
 			long offset = Long.parseLong(indexMap.get(String.valueOf(orderId)));
 			try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
 				orderFileReader.seek(offset);
-				String line = orderFileReader.readLine();
+				String line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
 //				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
-				orderData = createKVMapFromLine(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
+				orderData = createKVMapFromLine(line);
 				
 			} catch (IOException e) {
 				// 忽略
