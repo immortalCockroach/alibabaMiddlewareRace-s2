@@ -72,11 +72,6 @@ public class OrderSystemImpl implements OrderSystem {
 	private SimpleLRUCache<String, String> goodsCache;
 	
 	private volatile boolean isConstructed;
-	
-//	private Lock query1Lock;
-//	private Lock query2Lock;
-//	private Lock query3Lock;
-//	private Lock query4Lock;
 
 	/**
 	 * KeyValue的实现类，代表一行中的某个key-value对 raw数据采用String来存储 之后根据情况返回对应的long获得double
@@ -224,7 +219,6 @@ public class OrderSystemImpl implements OrderSystem {
 				Row kvMap;
 				KV orderKV;
 				int index;
-				ExtendBufferedWriter bw;
 				ExtendBufferedWriter offsetBw;
 				long offset;
 				long length;
@@ -430,13 +424,13 @@ public class OrderSystemImpl implements OrderSystem {
 		os.construct(orderFiles, buyerFiles, goodFiles, storeFolders);
 
 		// 用例
-		long start = System.currentTimeMillis();
-		long orderid = 609670049;
-		System.out.println("\n查询订单号为" + orderid + "的订单");
-		List<String> keys = new ArrayList<>();
-		keys.add("description");
-		System.out.println(os.queryOrder(orderid, keys));
-		System.out.println(System.currentTimeMillis()-start);
+//		long start = System.currentTimeMillis();
+//		long orderid = 609670049;
+//		System.out.println("\n查询订单号为" + orderid + "的订单");
+//		List<String> keys = new ArrayList<>();
+//		keys.add("description");
+//		System.out.println(os.queryOrder(orderid, keys));
+//		System.out.println(System.currentTimeMillis()-start);
 //		System.out.println("\n查询订单号为" + orderid + "的订单，查询的keys为空，返回订单，但没有kv数据");
 //		System.out.println(os.queryOrder(orderid, new ArrayList<String>()));
 
@@ -557,7 +551,7 @@ public class OrderSystemImpl implements OrderSystem {
 		
 
 		
-		// 主要对index time进行修改 
+		// 主要对第一阶段的index time进行限制
 		final CountDownLatch latch = new CountDownLatch(1);
 		new Thread() {
 			@Override
@@ -565,16 +559,16 @@ public class OrderSystemImpl implements OrderSystem {
 				
 				constructWriterForIndexFile();
 				long writer = System.currentTimeMillis();
-				System.out.println("writer time:" + (writer-dir));
+				System.out.println("writer time:" + (writer - dir));
 				
 				constructHashIndex();
 				long index = System.currentTimeMillis();
-				System.out.println("index time:" + (index-writer));
+				System.out.println("index time:" + (index - writer));
 				
 				
 				closeWriter();	
 				long closeWriter = System.currentTimeMillis();
-				System.out.println("close time:" + (closeWriter-index));
+				System.out.println("close time:" + (closeWriter - index));
 				System.out.println("construct KO");
 				latch.countDown();
 				isConstructed = true;
@@ -756,6 +750,14 @@ public class OrderSystemImpl implements OrderSystem {
 	}
 
 	public Result queryOrder(long orderId, Collection<String> keys) {
+		while (this.isConstructed == false) {
+			try {
+				Thread.sleep(10000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		Row query = new Row();
 		query.putKV("orderid", orderId);
 
@@ -926,7 +928,14 @@ public class OrderSystemImpl implements OrderSystem {
 	}
 
 	public Iterator<Result> queryOrdersByBuyer(long startTime, long endTime, String buyerid) {
-
+		while (this.isConstructed == false) {
+			try {
+				Thread.sleep(10000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		final PriorityQueue<Row> buyerOrderQueue = new PriorityQueue<>(1000, new Comparator<Row>() {
 
 			@Override
@@ -1009,9 +1018,17 @@ public class OrderSystemImpl implements OrderSystem {
 	}
 
 	public Iterator<Result> queryOrdersBySaler(String salerid, String goodid, Collection<String> keys) {
+		while (this.isConstructed == false) {
+			try {
+				Thread.sleep(10000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		final Collection<String> queryKeys = keys;
 
-		final PriorityQueue<Row> salerGoodsQueue = new PriorityQueue<>(1000, new Comparator<Row>() {
+		final PriorityQueue<Row> salerGoodsQueue = new PriorityQueue<>(8192, new Comparator<Row>() {
 
 			@Override
 			public int compare(Row o1, Row o2) {
@@ -1094,7 +1111,15 @@ public class OrderSystemImpl implements OrderSystem {
 	}
 
 	public KeyValue sumOrdersByGood(String goodid, String key) {
-		List<Row> ordersData = new ArrayList<>(1000);
+		while (this.isConstructed == false) {
+			try {
+				Thread.sleep(10000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		List<Row> ordersData = new ArrayList<>(8192);
 		
 		List<String> cachedStrings;
 		if ((cachedStrings = query4Cache.get(goodid)) != null) {
