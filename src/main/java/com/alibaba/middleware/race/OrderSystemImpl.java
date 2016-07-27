@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import com.alibaba.middleware.race.utils.CommonConstants;
 import com.alibaba.middleware.race.utils.ExtendBufferedReader;
@@ -45,30 +46,32 @@ public class OrderSystemImpl implements OrderSystem {
 	private String buyersPath;
 	private String goodsPath;
 	
-	private ExtendBufferedWriter[] query1Writers;
+	
 	private long[] query1Offset;
 	private ExtendBufferedWriter[] query1IndexWriters;
 	private SimpleLRUCache<Long, String> query1Cache;
 	
-	private ExtendBufferedWriter[] query2Writers;
+	
 	private long[] query2Offset;
 	private ExtendBufferedWriter[] query2IndexWriters;
 //	private SimpleLRUCache<String, List<Long>> query2Cache;
 	
-	private ExtendBufferedWriter[] query3Writers;
+	
 	private long[] query3Offset;
 	private ExtendBufferedWriter[] query3IndexWriters;
 	private SimpleLRUCache<String, List<String>> query3Cache;
 //	private BufferedWriter[] query4Writers;
 	private SimpleLRUCache<String, List<String>> query4Cache;
-	private ExtendBufferedWriter[] buyersWriters;
+	
 	private long[] buyersOffset;
 	private ExtendBufferedWriter[] buyersIndexWriters;
 	private SimpleLRUCache<String, String> buyersCache;
-	private ExtendBufferedWriter[] goodsWriters;
+	
 	private long[] goodsOffset;
 	private ExtendBufferedWriter[] goodsIndexWriters;
 	private SimpleLRUCache<String, String> goodsCache;
+	
+	private volatile boolean isConstructed;
 	
 //	private Lock query1Lock;
 //	private Lock query2Lock;
@@ -192,7 +195,7 @@ public class OrderSystemImpl implements OrderSystem {
 	
 	class HashIndexCreator implements Runnable{
 		private String hashId;
-		private ExtendBufferedWriter[] writers;
+
 		private ExtendBufferedWriter[] offSetwriters;
 		private long[] writersOffset;
 		private Collection<String> files;
@@ -201,12 +204,11 @@ public class OrderSystemImpl implements OrderSystem {
 		private final int BLOCK_SIZE;
 		private String[] identities;
 		
-		public HashIndexCreator(String hashId, ExtendBufferedWriter[] writers, ExtendBufferedWriter[] offsetWriters,
+		public HashIndexCreator(String hashId, ExtendBufferedWriter[] offsetWriters,
 				long[] writersOffset, Collection<String> files, int bUCKET_SIZE, int blockSize, CountDownLatch latch, String[] identities) {
 			super();
 			this.latch = latch;
 			this.hashId = hashId;
-			this.writers = writers;
 			this.offSetwriters = offsetWriters;
 			this.files = files;
 			this.writersOffset = writersOffset;
@@ -239,7 +241,7 @@ public class OrderSystemImpl implements OrderSystem {
 								hashWithDistrub(hashId.equals("orderid") ? orderKV.longValue : orderKV.rawValue),
 								BUCKET_SIZE);
 						// 获得对应的writer
-						bw = writers[index];
+
 						offsetBw = offSetwriters[index];
 						
 						// 计算offSet并回写
@@ -260,8 +262,6 @@ public class OrderSystemImpl implements OrderSystem {
 						// 此处表示下一个offSet的开始 所以放到后面
 						offset += (length + 2);
 						writersOffset[index] = offset;
-						bw.write(line);
-						bw.newLine();
 
 						line = reader.readLine();
 					}
@@ -546,50 +546,69 @@ public class OrderSystemImpl implements OrderSystem {
 		for(String s:storeFolders) {
 			System.out.println(s);
 		}
-		long start = System.currentTimeMillis();
+		
 		this.orderFiles = orderFiles;
 		this.buyerFiles = buyerFiles;
 		this.goodFiles = goodFiles;
+		long start = System.currentTimeMillis();
 		constructDir(storeFolders);
-		long dir = System.currentTimeMillis();
-		constructWriterForIndexFile();
-		long writer = System.currentTimeMillis();
-		constructHashIndex();
-		long index = System.currentTimeMillis();
-		closeWriter();
-		long closeWriter = System.currentTimeMillis();
-		System.out.println("dir time:"+ (dir-start));
-		System.out.println("writer time:"+ (writer-dir));
-		System.out.println("index time:"+ (index-writer));
-		System.out.println("close time:"+ (closeWriter-index));
+		final long dir = System.currentTimeMillis();
+		System.out.println("dir time:" + (dir-start));
 		
-		System.out.println("construct KO");
+
+		
+		// 主要对index time进行修改 
+		final CountDownLatch latch = new CountDownLatch(1);
+		new Thread() {
+			@Override
+			public void run() {
+				
+				constructWriterForIndexFile();
+				long writer = System.currentTimeMillis();
+				System.out.println("writer time:" + (writer-dir));
+				
+				constructHashIndex();
+				long index = System.currentTimeMillis();
+				System.out.println("index time:" + (index-writer));
+				
+				
+				closeWriter();	
+				long closeWriter = System.currentTimeMillis();
+				System.out.println("close time:" + (closeWriter-index));
+				System.out.println("construct KO");
+				latch.countDown();
+				isConstructed = true;
+			}
+		}.start();
+		
+		latch.await(59 * 60 + 45, TimeUnit.SECONDS);
+		System.out.println("construct return,time:" + (System.currentTimeMillis() - start));
 		
 
 	}
 	private void constructHashIndex() {
 		// 5个线程各自完成之后 该函数才能返回
-		CountDownLatch latch = new CountDownLatch(5);
-		new Thread(new HashIndexCreator("orderid", query1Writers,query1IndexWriters, query1Offset,orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
+		CountDownLatch latch = new CountDownLatch(3);
+		new Thread(new HashIndexCreator("orderid",query1IndexWriters, query1Offset,orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch,new String[]{"orderid"})).start();
-		new Thread(new HashIndexCreator("buyerid", query2Writers,query2IndexWriters, query2Offset, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
+		new Thread(new HashIndexCreator("buyerid",query2IndexWriters, query2Offset, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch,new String[]{"buyerid","createtime"})).start();
-		new Thread(new HashIndexCreator("goodid", query3Writers, query3IndexWriters, query3Offset ,orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
+		new Thread(new HashIndexCreator("goodid", query3IndexWriters, query3Offset ,orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch, new String[]{"goodid"})).start();
 		// new Thread(new HashIndexCreator("goodid", query4Writers, orderFiles,
 		// CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
 
 		
-//		try {
-//			latch.await();
-//		} catch (InterruptedException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//		latch = new CountDownLatch(2);
-		new Thread(new HashIndexCreator("buyerid", buyersWriters, buyersIndexWriters, buyersOffset ,buyerFiles, CommonConstants.OTHER_SPLIT_SIZE,
+		try {
+			latch.await();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		latch = new CountDownLatch(2);
+		new Thread(new HashIndexCreator("buyerid", buyersIndexWriters, buyersOffset ,buyerFiles, CommonConstants.OTHER_SPLIT_SIZE,
 				CommonConstants.OTHERFILE_BLOCK_SIZE, latch, new String[]{"buyerid"})).start();
-		new Thread(new HashIndexCreator("goodid", goodsWriters, goodsIndexWriters, goodsOffset, goodFiles, CommonConstants.OTHER_SPLIT_SIZE,
+		new Thread(new HashIndexCreator("goodid", goodsIndexWriters, goodsOffset, goodFiles, CommonConstants.OTHER_SPLIT_SIZE,
 				CommonConstants.OTHERFILE_BLOCK_SIZE, latch, new String[]{"goodid"})).start();
 		
 		try {
@@ -621,32 +640,27 @@ public class OrderSystemImpl implements OrderSystem {
 	 */
 	private void constructWriterForIndexFile() {
 		// 创建4种查询的4中索引文件和买家 商品信息的writer
-		this.query1Writers = new ExtendBufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
 		this.query1IndexWriters = new ExtendBufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
 		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
 			try {
-				query1Writers[i] = IOUtils.createWriter(this.query1Path + File.separator + i, CommonConstants.INDEX_BLOCK_SIZE);
 				query1IndexWriters[i] = IOUtils.createWriter(this.query1Path + File.separator + i + CommonConstants.INDEX_SUFFIX, CommonConstants.INDEX_BLOCK_SIZE);
 			} catch (IOException e) {
 
 			}
 		}
-		this.query2Writers = new ExtendBufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
+
 		this.query2IndexWriters = new ExtendBufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
 		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
 			try {
-				query2Writers[i] = IOUtils.createWriter(this.query2Path + File.separator + i, CommonConstants.INDEX_BLOCK_SIZE);
 				query2IndexWriters[i] = IOUtils.createWriter(this.query2Path + File.separator + i + CommonConstants.INDEX_SUFFIX, CommonConstants.INDEX_BLOCK_SIZE);
 			} catch (IOException e) {
 
 			}
 		}
 		
-		this.query3Writers = new ExtendBufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
 		this.query3IndexWriters = new ExtendBufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
 		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
 			try {
-				query3Writers[i] = IOUtils.createWriter(this.query3Path + File.separator + i, CommonConstants.INDEX_BLOCK_SIZE);
 				query3IndexWriters[i] = IOUtils.createWriter(this.query3Path + File.separator + i + CommonConstants.INDEX_SUFFIX, CommonConstants.INDEX_BLOCK_SIZE);
 			} catch (IOException e) {
 
@@ -661,23 +675,21 @@ public class OrderSystemImpl implements OrderSystem {
 //
 //			}
 //		}
-		
-		this.buyersWriters = new ExtendBufferedWriter[CommonConstants.OTHER_SPLIT_SIZE];
+	
 		this.buyersIndexWriters = new ExtendBufferedWriter[CommonConstants.OTHER_SPLIT_SIZE];
 		for (int i = 0; i < CommonConstants.OTHER_SPLIT_SIZE; i++) {
 			try {
-				buyersWriters[i] = IOUtils.createWriter(this.buyersPath + File.separator + i, CommonConstants.INDEX_BLOCK_SIZE);
+			
 				buyersIndexWriters[i] = IOUtils.createWriter(this.buyersPath + File.separator + i+ CommonConstants.INDEX_SUFFIX, CommonConstants.INDEX_BLOCK_SIZE);
 			} catch (IOException e) {
 
 			}
 		}
-		
-		this.goodsWriters = new ExtendBufferedWriter[CommonConstants.OTHER_SPLIT_SIZE];
+	
 		this.goodsIndexWriters = new ExtendBufferedWriter[CommonConstants.OTHER_SPLIT_SIZE];
 		for (int i = 0; i < CommonConstants.OTHER_SPLIT_SIZE; i++) {
 			try {
-				goodsWriters[i] = IOUtils.createWriter(this.goodsPath + File.separator + i, CommonConstants.INDEX_BLOCK_SIZE);
+				
 				goodsIndexWriters[i] = IOUtils.createWriter(this.goodsPath + File.separator + i + CommonConstants.INDEX_SUFFIX, CommonConstants.INDEX_BLOCK_SIZE);
 			} catch (IOException e) {
 
@@ -804,21 +816,15 @@ public class OrderSystemImpl implements OrderSystem {
 	
 	private void closeWriter() {
 		try {
-			for (ExtendBufferedWriter bw : query1Writers) {
-				bw.close();
-			}
+
 			for (ExtendBufferedWriter bw : query1IndexWriters) {
 				bw.close();
 			}
-			for (ExtendBufferedWriter bw : query2Writers) {
-				bw.close();
-			}
+
 			for (ExtendBufferedWriter bw : query2IndexWriters) {
 				bw.close();
 			}
-			for (ExtendBufferedWriter bw : query3Writers) {
-				bw.close();
-			}
+
 			for (ExtendBufferedWriter bw : query3IndexWriters) {
 				bw.close();
 			}
@@ -826,16 +832,12 @@ public class OrderSystemImpl implements OrderSystem {
 //				bw.close();
 //			}
 			
-			for (ExtendBufferedWriter bw : buyersWriters) {
-				bw.close();
-			}
+
 			for (ExtendBufferedWriter bw : buyersIndexWriters) {
 				bw.close();
 			}
 			
-			for (ExtendBufferedWriter bw : goodsWriters) {
-				bw.close();
-			}
+
 			for (ExtendBufferedWriter bw : goodsIndexWriters) {
 				bw.close();
 			}
