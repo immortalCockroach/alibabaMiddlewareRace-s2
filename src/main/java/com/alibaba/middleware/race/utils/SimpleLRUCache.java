@@ -16,64 +16,49 @@ public class SimpleLRUCache<K, V> {
 	private Entry<K, V> last;
 
 	private HashMap<K, Entry<K, V>> hashMap;
-	private Lock lock;
 	public SimpleLRUCache(int cacheSize) {
         MAX_CACHE_SIZE = cacheSize;
-        lock = new ReentrantLock();
         hashMap = new HashMap<K, Entry<K, V>>(cacheSize);
     }
 
-	public void put(K key, V value) {
-		lock.lock();
-		try{
-			Entry<K, V> entry = getEntry(key);
-			if (entry == null) {
-				if (hashMap.size() >= MAX_CACHE_SIZE) {
-					hashMap.remove(last.key);
-					removeLast();
-				}
-				entry = new Entry<K, V>();
-				entry.key = key;
+	public synchronized void put(K key, V value) {
+		Entry<K, V> entry = getEntry(key);
+		if (entry == null) {
+			if (hashMap.size() >= MAX_CACHE_SIZE) {
+				hashMap.remove(last.key);
+				removeLast();
 			}
-			entry.value = value;
-			moveToFirst(entry);
-			hashMap.put(key, entry);
-		} finally {
-			lock.unlock();
+			entry = new Entry<K, V>();
+			entry.key = key;
 		}
+		entry.value = value;
+		moveToFirst(entry);
+		hashMap.put(key, entry);
 	}
 
-	public V get(K key) {
-		lock.lock();
-		try{
-			Entry<K, V> entry = getEntry(key);
-			if (entry == null)
-				return null;
-			moveToFirst(entry);
-			return entry.value;
-		} finally {
-			lock.unlock();
-		}
+	public synchronized V get(K key) {
+
+		Entry<K, V> entry = getEntry(key);
+		if (entry == null)
+			return null;
+		moveToFirst(entry);
+		return entry.value;
+
 	}
 
-	public void remove(K key) {
-		lock.lock();
-		try{
-			Entry<K, V> entry = getEntry(key);
-			if (entry != null) {
-				if (entry.pre != null)
-					entry.pre.next = entry.next;
-				if (entry.next != null)
-					entry.next.pre = entry.pre;
-				if (entry == first)
-					first = entry.next;
-				if (entry == last)
-					last = entry.pre;
-			}
-			hashMap.remove(key);
-		} finally {
-			lock.unlock();
+	public synchronized void remove(K key) {
+		Entry<K, V> entry = getEntry(key);
+		if (entry != null) {
+			if (entry.pre != null)
+				entry.pre.next = entry.next;
+			if (entry.next != null)
+				entry.next.pre = entry.pre;
+			if (entry == first)
+				first = entry.next;
+			if (entry == last)
+				last = entry.pre;
 		}
+		hashMap.remove(key);
 	}
 
 	private void moveToFirst(Entry<K, V> entry) {
