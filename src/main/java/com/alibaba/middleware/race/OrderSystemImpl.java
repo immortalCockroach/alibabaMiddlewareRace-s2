@@ -46,28 +46,30 @@ public class OrderSystemImpl implements OrderSystem {
 	private String buyersPath;
 	private String goodsPath;
 	
-	
-	private long[] query1Offset;
+	/**
+	 * 这个数据记录每个文件的行当前写入的record数量，当大于INDEX_LINE_RECORDS的时候，换行
+	 */
+	private int[] query1LineRecords;
 	private ExtendBufferedWriter[] query1IndexWriters;
 	private SimpleLRUCache<Long, String> query1Cache;
 	
 	
-	private long[] query2Offset;
+	private int[] query2LineRecords;
 	private ExtendBufferedWriter[] query2IndexWriters;
 //	private SimpleLRUCache<String, List<Long>> query2Cache;
 	
 	
-	private long[] query3Offset;
+	private int[] query3LineRecords;
 	private ExtendBufferedWriter[] query3IndexWriters;
 	private SimpleLRUCache<String, List<String>> query3Cache;
 //	private BufferedWriter[] query4Writers;
 	private SimpleLRUCache<String, List<String>> query4Cache;
 	
-	private long[] buyersOffset;
+	private int[] buyerLineRecords;
 	private ExtendBufferedWriter[] buyersIndexWriters;
 	private SimpleLRUCache<String, String> buyersCache;
 	
-	private long[] goodsOffset;
+	private int[] goodLineRecords;
 	private ExtendBufferedWriter[] goodsIndexWriters;
 	private SimpleLRUCache<String, String> goodsCache;
 	
@@ -192,7 +194,7 @@ public class OrderSystemImpl implements OrderSystem {
 		private String hashId;
 
 		private ExtendBufferedWriter[] offSetwriters;
-		private long[] writersOffset;
+		private int[] indexLineRecords;
 		private Collection<String> files;
 		private CountDownLatch latch;
 		private final int BUCKET_SIZE;
@@ -200,13 +202,13 @@ public class OrderSystemImpl implements OrderSystem {
 		private String[] identities;
 		
 		public HashIndexCreator(String hashId, ExtendBufferedWriter[] offsetWriters,
-				long[] writersOffset, Collection<String> files, int bUCKET_SIZE, int blockSize, CountDownLatch latch, String[] identities) {
+				int[] indexLineRecords, Collection<String> files, int bUCKET_SIZE, int blockSize, CountDownLatch latch, String[] identities) {
 			super();
 			this.latch = latch;
 			this.hashId = hashId;
 			this.offSetwriters = offsetWriters;
 			this.files = files;
-			this.writersOffset = writersOffset;
+			this.indexLineRecords = indexLineRecords;
 			BUCKET_SIZE = bUCKET_SIZE;
 			BLOCK_SIZE = blockSize;
 			this.identities = identities;
@@ -220,15 +222,19 @@ public class OrderSystemImpl implements OrderSystem {
 				KV orderKV;
 				int index;
 				ExtendBufferedWriter offsetBw;
-				long offset;
-				long length;
+				// 记录当前行的偏移
+				long offset = 0L;
+				// 记录当前行的总长度
+				int length = 0;
 				try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, BLOCK_SIZE)) {
+					
 					String line = reader.readLine();
 					while (line != null) {
 						StringBuilder offSetMsg = new StringBuilder();
 						kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
 						// windows测试 提交的时候修改为1
 						length = line.getBytes().length;
+						
 						// orderId一定存在且为long
 						orderKV = kvMap.getKV(hashId);
 						index = indexFor(
@@ -238,24 +244,30 @@ public class OrderSystemImpl implements OrderSystem {
 
 						offsetBw = offSetwriters[index];
 						
-						// 计算offSet并回写
-						offset = writersOffset[index]; 
-
-						
-						// index file的写入 具体为identifier:offSet
+						// index file的写入 具体为identifier:file offset length
 						// 多个identifier采用拼接
 						for(String e : identities) {
 							offSetMsg.append(kvMap.getKV(e).rawValue) ;
 						}
-						offSetMsg.append(":");
+						offSetMsg.append(':');
+						offSetMsg.append(orderFile);
+						offSetMsg.append(' ');
 						offSetMsg.append(offset);
-						offSetMsg.append("\t");
+						offSetMsg.append(' ');
+						offSetMsg.append(length);
+						offSetMsg.append('\t');
 						// 写入对应的索引文件 此处不换行
 						offsetBw.write(offSetMsg.toString());
 						
-						// 此处表示下一个offSet的开始 所以放到后面
+						// 将对应index文件的行记录数++ 如果超过80则换行并清空
+						this.indexLineRecords[index]++;
+						if ( this.indexLineRecords[index] == CommonConstants.INDEX_LINE_RECORDS) {
+							offsetBw.newLine();
+							this.indexLineRecords[index] = 0;
+						}
+						// 此处表示下一个offSet的开始 所以放到后面(提交的时候修改为1 因为linux和unix的换行符为\n)
 						offset += (length + 2);
-						writersOffset[index] = offset;
+						
 
 						line = reader.readLine();
 					}
@@ -386,17 +398,17 @@ public class OrderSystemImpl implements OrderSystem {
 //		query2Lock = new ReentrantLock();
 //		query3Lock = new ReentrantLock();
 //		query4Lock = new ReentrantLock();
-		this.query1Offset = new long[CommonConstants.ORDER_SPLIT_SIZE];
+		this.query1LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
 		this.query1Cache = new SimpleLRUCache<>(256);
-		this.query2Offset = new long[CommonConstants.ORDER_SPLIT_SIZE];
+		this.query2LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
 //		this.query2Cache = new SimpleLRUCache<>(256);
-		this.query3Offset = new long[CommonConstants.ORDER_SPLIT_SIZE];
+		this.query3LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
 		this.query3Cache = new SimpleLRUCache<>(512);
 		this.query4Cache = new SimpleLRUCache<>(512); 
-		this.buyersOffset =  new long[CommonConstants.OTHER_SPLIT_SIZE];
+		this.buyerLineRecords =  new int[CommonConstants.OTHER_SPLIT_SIZE];
 		this.buyersCache = new SimpleLRUCache<>(4096);
 		
-		this.goodsOffset =  new long[CommonConstants.OTHER_SPLIT_SIZE];
+		this.goodLineRecords =  new int[CommonConstants.OTHER_SPLIT_SIZE];
 		this.goodsCache = new SimpleLRUCache<>(4096);
 	}
 
@@ -583,11 +595,11 @@ public class OrderSystemImpl implements OrderSystem {
 	private void constructHashIndex() {
 		// 5个线程各自完成之后 该函数才能返回
 		CountDownLatch latch = new CountDownLatch(3);
-		new Thread(new HashIndexCreator("orderid",query1IndexWriters, query1Offset,orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
+		new Thread(new HashIndexCreator("orderid",query1IndexWriters, query1LineRecords,orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch,new String[]{"orderid"})).start();
-		new Thread(new HashIndexCreator("buyerid",query2IndexWriters, query2Offset, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
+		new Thread(new HashIndexCreator("buyerid",query2IndexWriters, query2LineRecords, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch,new String[]{"buyerid","createtime"})).start();
-		new Thread(new HashIndexCreator("goodid", query3IndexWriters, query3Offset ,orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
+		new Thread(new HashIndexCreator("goodid", query3IndexWriters, query3LineRecords ,orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch, new String[]{"goodid"})).start();
 		// new Thread(new HashIndexCreator("goodid", query4Writers, orderFiles,
 		// CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
@@ -600,9 +612,9 @@ public class OrderSystemImpl implements OrderSystem {
 			e.printStackTrace();
 		}
 		latch = new CountDownLatch(2);
-		new Thread(new HashIndexCreator("buyerid", buyersIndexWriters, buyersOffset ,buyerFiles, CommonConstants.OTHER_SPLIT_SIZE,
+		new Thread(new HashIndexCreator("buyerid", buyersIndexWriters, buyerLineRecords ,buyerFiles, CommonConstants.OTHER_SPLIT_SIZE,
 				CommonConstants.OTHERFILE_BLOCK_SIZE, latch, new String[]{"buyerid"})).start();
-		new Thread(new HashIndexCreator("goodid", goodsIndexWriters, goodsOffset, goodFiles, CommonConstants.OTHER_SPLIT_SIZE,
+		new Thread(new HashIndexCreator("goodid", goodsIndexWriters, goodLineRecords, goodFiles, CommonConstants.OTHER_SPLIT_SIZE,
 				CommonConstants.OTHERFILE_BLOCK_SIZE, latch, new String[]{"goodid"})).start();
 		
 		try {
