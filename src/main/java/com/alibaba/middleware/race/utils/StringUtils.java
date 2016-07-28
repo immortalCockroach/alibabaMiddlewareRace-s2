@@ -140,6 +140,17 @@ public class StringUtils {
 		kvMap.put(kv.key(), kv);
 		return kvMap;
 	}
+	
+	public static  String[] getIndexInfo(String lineSegment) {
+		String[] indexInfo = new String[3];
+		for(int i = 0; i<= 1; i++) {
+			int p = lineSegment.indexOf(' ');
+			indexInfo[i] = lineSegment.substring(0, p);
+			lineSegment = lineSegment.substring(p + 1);
+		}
+		indexInfo[2] = lineSegment;
+		return indexInfo;
+	}
 
 	/**
 	 * 将一行切割为HashMap 用于查询1和join操作
