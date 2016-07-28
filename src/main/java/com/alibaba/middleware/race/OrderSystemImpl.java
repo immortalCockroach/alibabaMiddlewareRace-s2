@@ -773,7 +773,7 @@ public class OrderSystemImpl implements OrderSystem {
 	public Result queryOrder(long orderId, Collection<String> keys) {
 		while (this.isConstructed == false) {
 			try {
-				Thread.sleep(10000);
+				Thread.sleep(5000);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -985,13 +985,13 @@ public class OrderSystemImpl implements OrderSystem {
 	public Iterator<Result> queryOrdersByBuyer(long startTime, long endTime, String buyerid) {
 		while (this.isConstructed == false) {
 			try {
-				Thread.sleep(10000);
+				Thread.sleep(5000);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
-		final PriorityQueue<Row> buyerOrderQueue = new PriorityQueue<>(1000, new Comparator<Row>() {
+		final PriorityQueue<Row> buyerOrderQueue = new PriorityQueue<>(256, new Comparator<Row>() {
 
 			@Override
 			public int compare(Row o1, Row o2) {
@@ -1020,10 +1020,10 @@ public class OrderSystemImpl implements OrderSystem {
 			String indexFile = this.query2Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 			
 			// 用于存储在cache中的map key为createtime;value为content
-			cachedStringsMap = new HashMap<>(1024);
+			cachedStringsMap = new HashMap<>(256,1f);
 			
 			// 一个用户的所有order信息 key为createtime;value为file offset length
-			Map<Long, String> buyerOrderMap = new HashMap<>(1024);
+			Map<Long, String> buyerOrderMap = new HashMap<>(256, 1f);
 			
 			// 用于查找一个文件中对应的信息 key为buyer+createtime;value为filename offset length
 			Map<String,String> indexMap = null;
@@ -1037,8 +1037,9 @@ public class OrderSystemImpl implements OrderSystem {
 					Long createTime;
 					for (Map.Entry<String, String> e : indexMap.entrySet()) {
 						String key = e.getKey();
-						// 取尾部的时间戳
-						createTime = Long.parseLong(key.substring(key.length() - 10));
+						// 由于时间测试的时候可能有负数或者不止10位数，此处使用
+						createTime = Long.parseLong(key.substring(20));
+//						System.out.println(createTime);
 						
 						buyerOrderMap.put(createTime, e.getValue());
 					}
@@ -1102,7 +1103,7 @@ public class OrderSystemImpl implements OrderSystem {
 	public Iterator<Result> queryOrdersBySaler(String salerid, String goodid, Collection<String> keys) {
 		while (this.isConstructed == false) {
 			try {
-				Thread.sleep(10000);
+				Thread.sleep(5000);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -1110,7 +1111,7 @@ public class OrderSystemImpl implements OrderSystem {
 		}
 		final Collection<String> queryKeys = keys;
 
-		final PriorityQueue<Row> salerGoodsQueue = new PriorityQueue<>(8192, new Comparator<Row>() {
+		final PriorityQueue<Row> salerGoodsQueue = new PriorityQueue<>(1024, new Comparator<Row>() {
 
 			@Override
 			public int compare(Row o1, Row o2) {
@@ -1203,13 +1204,13 @@ public class OrderSystemImpl implements OrderSystem {
 	public KeyValue sumOrdersByGood(String goodid, String key) {
 		while (this.isConstructed == false) {
 			try {
-				Thread.sleep(10000);
+				Thread.sleep(5000);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
-		List<Row> ordersData = new ArrayList<>(8192);
+		List<Row> ordersData = new ArrayList<>(1024);
 		
 		List<String> cachedStrings;
 		if ((cachedStrings = query4Cache.get(goodid)) != null) {
