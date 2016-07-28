@@ -239,7 +239,7 @@ public class StringUtils {
 	 * @param splitch
 	 * @return
 	 */
-	public static List<Long> createListFromLongLineWithKey(String longLine, String k, char splitch) {
+	public static List<String> createListFromLongLineWithKey(String longLine, String k, char splitch) {
 		int splitIndex;
 		if (longLine.charAt(longLine.length() - 1) == splitch) {
 			longLine = longLine.substring(0, longLine.length() - 1);
@@ -248,7 +248,7 @@ public class StringUtils {
 		splitIndex = longLine.indexOf(splitch);
 		int p;
 		String key;
-		List<Long> result = new ArrayList<>(1024);
+		List<String> result = new ArrayList<>(1024);
 
 		while (splitIndex != -1) {
 			splitted = longLine.substring(0, splitIndex);
@@ -256,7 +256,7 @@ public class StringUtils {
 			p = splitted.indexOf(':');
 			key = splitted.substring(0, p);
 			if (key.startsWith(k)) {
-				result.add(Long.parseLong(splitted.substring(p + 1)));
+				result.add(splitted.substring(p + 1));
 			}
 			splitIndex = longLine.indexOf(splitch);
 		}
@@ -264,7 +264,7 @@ public class StringUtils {
 		p = splitted.indexOf(':');
 		key = splitted.substring(0, p);
 		if (key.startsWith(k)) {
-			result.add(Long.parseLong(splitted.substring(p + 1)));
+			result.add(splitted.substring(p + 1));
 		}
 		// for (String rawkv : kvs) {
 		// int p = rawkv.indexOf(':');
