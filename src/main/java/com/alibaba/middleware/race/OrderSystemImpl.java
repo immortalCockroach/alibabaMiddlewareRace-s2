@@ -200,6 +200,8 @@ public class OrderSystemImpl implements OrderSystem {
 		private final int BUCKET_SIZE;
 		private final int BLOCK_SIZE;
 		private String[] identities;
+		private int buildCount;
+		private int mod;
 		
 		public HashIndexCreator(String hashId, ExtendBufferedWriter[] offsetWriters,
 				int[] indexLineRecords, Collection<String> files, int bUCKET_SIZE, int blockSize, CountDownLatch latch, String[] identities) {
@@ -212,6 +214,8 @@ public class OrderSystemImpl implements OrderSystem {
 			BUCKET_SIZE = bUCKET_SIZE;
 			BLOCK_SIZE = blockSize;
 			this.identities = identities;
+			this.buildCount = 0;
+			this.mod = 524287;
 		}
 
 		@Override
@@ -268,7 +272,10 @@ public class OrderSystemImpl implements OrderSystem {
 						// 此处表示下一个offSet的开始 所以放到后面(提交的时候修改为1 因为linux和unix的换行符为\n)
 						offset += (length + 2);
 						
-
+						buildCount++;
+						if ((buildCount & mod) == 0) {
+							System.out.println(hashId + " construct:" + buildCount);
+						}
 						line = reader.readLine();
 					}
 					
