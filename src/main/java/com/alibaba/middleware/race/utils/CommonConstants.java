@@ -7,10 +7,10 @@ public class CommonConstants {
 	public static final int INDEX_BLOCK_SIZE = 1024 * 10;
 	
 	// order文件的大小
-	public static final int ORDERFILE_BLOCK_SIZE = 1024 * 100;
+	public static final int ORDERFILE_BLOCK_SIZE = 1024 * 40;
 	
 	// 买家和商品文件的大小
-	public static final int OTHERFILE_BLOCK_SIZE = 1024 * 10;
+	public static final int OTHERFILE_BLOCK_SIZE = 1024 * 20;
 
 	public static final String NEW_LINE = System.getProperty("line.separator");
 	
