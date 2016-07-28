@@ -56,6 +56,7 @@ public class OrderSystemImpl implements OrderSystem {
 	
 	private int[] query2LineRecords;
 	private ExtendBufferedWriter[] query2IndexWriters;
+	private SimpleLRUCache<String, Map<Long,String>> query2Cache;
 //	private SimpleLRUCache<String, List<Long>> query2Cache;
 	
 	
@@ -405,18 +406,19 @@ public class OrderSystemImpl implements OrderSystem {
 //		query2Lock = new ReentrantLock();
 //		query3Lock = new ReentrantLock();
 //		query4Lock = new ReentrantLock();
+		query1Cache = new SimpleLRUCache<>(32768);
 		this.query1LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
-		this.query1Cache = new SimpleLRUCache<>(256);
+		query2Cache = new SimpleLRUCache<>(8192);
 		this.query2LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
-//		this.query2Cache = new SimpleLRUCache<>(256);
+		query3Cache = new SimpleLRUCache<>(8192);
 		this.query3LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
-		this.query3Cache = new SimpleLRUCache<>(512);
-		this.query4Cache = new SimpleLRUCache<>(512); 
-		this.buyerLineRecords =  new int[CommonConstants.OTHER_SPLIT_SIZE];
-		this.buyersCache = new SimpleLRUCache<>(4096);
+		query4Cache = new SimpleLRUCache<>(8192);
 		
-		this.goodLineRecords =  new int[CommonConstants.OTHER_SPLIT_SIZE];
-		this.goodsCache = new SimpleLRUCache<>(4096);
+		goodsCache = new SimpleLRUCache<>(32768);
+		this.goodLineRecords = new int[CommonConstants.OTHER_SPLIT_SIZE];
+		buyersCache = new SimpleLRUCache<>(32768);
+		this.buyerLineRecords = new int[CommonConstants.OTHER_SPLIT_SIZE];
+		isConstructed = false;
 	}
 
 	public static void main(String[] args) throws IOException, InterruptedException {
@@ -443,13 +445,13 @@ public class OrderSystemImpl implements OrderSystem {
 		os.construct(orderFiles, buyerFiles, goodFiles, storeFolders);
 
 		// 用例
-		long start = System.currentTimeMillis();
-		long orderid = 609670049;
-		System.out.println("\n查询订单号为" + orderid + "的订单");
-		List<String> keys = new ArrayList<>();
-		keys.add("description");
-		os.queryOrder(orderid, keys);
-		System.out.println(System.currentTimeMillis()-start);
+//		long start = System.currentTimeMillis();
+//		long orderid = 609670049;
+//		System.out.println("\n查询订单号为" + orderid + "的订单");
+//		List<String> keys = new ArrayList<>();
+//		keys.add("description");
+//		os.queryOrder(orderid, keys);
+//		System.out.println(System.currentTimeMillis()-start);
 //		System.out.println("\n查询订单号为" + orderid + "的订单，查询的keys为空，返回订单，但没有kv数据");
 //		System.out.println(os.queryOrder(orderid, new ArrayList<String>()));
 
@@ -468,17 +470,17 @@ public class OrderSystemImpl implements OrderSystem {
 //			System.out.println(1111 + " order not exist");
 //		}
 //		System.out.println(System.currentTimeMillis() - start);
-//		long start = System.currentTimeMillis();
-//		String buyerid = "wx-a0e0-6bda77db73ca";
-//		long startTime = 1462018520;
-//		long endTime = 1473999229;
-//		
-//		Iterator<Result> it = os.queryOrdersByBuyer(startTime, endTime, buyerid);
-//		System.out.println("time:"+(System.currentTimeMillis() - start));
-//		System.out.println("\n查询买家ID为" + buyerid + "的一定时间范围内的订单");
-//		while (it.hasNext()) {
-//			System.out.println(it.next());
-//		}
+		long start = System.currentTimeMillis();
+		String buyerid = "wx-a0e0-6bda77db73ca";
+		long startTime = 1462018520;
+		long endTime = 1473999229;
+		
+		Iterator<Result> it = os.queryOrdersByBuyer(startTime, endTime, buyerid);
+		System.out.println("time:"+(System.currentTimeMillis() - start));
+		System.out.println("\n查询买家ID为" + buyerid + "的一定时间范围内的订单");
+		while (it.hasNext()) {
+			System.out.println(it.next());
+		}
 		
 		//
 //		String goodid = "gd-b972-6926df8128c3";
@@ -1002,47 +1004,89 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 
 		});
-		int index = indexFor(hashWithDistrub(buyerid), CommonConstants.ORDER_SPLIT_SIZE);
-//		System.out.println(index);
-		String indexFile = this.query2Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
-		String orderFile = this.query2Path + File.separator + index;
-//		query2Lock.lock();
-		HashMap<String,String> indexMap = null;
-		ArrayList<Long> recordOffSets = new ArrayList<>(1024);
-		String start = buyerid + startTime;
-		String end = buyerid + endTime;
-//		System.out.println(recordOffSets.size());
-//		System.out.println(indexFile);
-		try (ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
-			String line = indexFileReader.readLine();
-			
-			if(line != null) {
-				indexMap = StringUtils.createMapFromLongLineWithPrefixKey(line, buyerid, CommonConstants.SPLITTER);
-				for (Map.Entry<String, String> e : indexMap.entrySet()) {
-					if (e.getKey().compareTo(start) >= 0 && e.getKey().compareTo(end) < 0) {
-						recordOffSets.add(Long.parseLong(e.getValue()));
-					}
-				}
-				
-				if(recordOffSets.size() > 0) {
-	//			System.out.println(recordOffSets.size());
+		
+		// 此处的Long为createtime;String为filename offset length
+		Map<Long,String> cachedStringsMap = query2Cache.get(buyerid);
+		if (cachedStringsMap != null) {
+			for(Map.Entry<Long, String> entry : cachedStringsMap.entrySet()) {
+				// 此处得到的都是某个buyerid对应的交易 所以不需要校验buyerid
+				if(entry.getKey() >= startTime && entry.getKey() < endTime) {
+					String[] indexArray = StringUtils.getIndexInfo(entry.getValue());
+					Long offset = Long.parseLong(indexArray[1]);
+					byte[] content = new byte[Integer.valueOf(indexArray[2])];
 					Row kvMap;
-					try (RandomAccessFile orderFileReader = new RandomAccessFile(orderFile, "r")) {
-						for (Long offset : recordOffSets) {
-							orderFileReader.seek(offset);
-							line = StringUtils.convertISOToUTF8(orderFileReader.readLine());
-			//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
-							kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
-							buyerOrderQueue.offer(kvMap);
-						}
-						
+					try (RandomAccessFile orderFileReader = new RandomAccessFile(indexArray[0], "r")) {
+						orderFileReader.seek(offset);
+						orderFileReader.read(content);
+
+		//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
+//						System.out.println("order:"+line);
+						kvMap = StringUtils.createKVMapFromLine(new String(content), CommonConstants.SPLITTER);
+						buyerOrderQueue.offer(kvMap);
 					} catch (IOException e) {
 						// 忽略
 					} 
 				}
 			}
-		} catch(IOException e) {
+		} else {
+			int index = indexFor(hashWithDistrub(buyerid), CommonConstants.ORDER_SPLIT_SIZE);
+	//		
+			String indexFile = this.query2Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 			
+			cachedStringsMap = new HashMap<>(1024);
+			// 用于查找一行中对应的信息 key为buyer+createtime;
+			// value为filename offset length
+			HashMap<String,String> indexMap = null;
+			// 记录某个买家的所有order信息
+			ArrayList<String> recordOffSets = new ArrayList<>(1024);
+			String start = buyerid + startTime;
+			String end = buyerid + endTime;
+
+			try (ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
+				String line = indexFileReader.readLine();
+				
+				while (line != null) {
+					// 获得一行中以<buyerid>开头的行
+					indexMap = StringUtils.createMapFromLongLineWithPrefixKey(line, buyerid, CommonConstants.SPLITTER);
+					Long createTime;
+					for (Map.Entry<String, String> e : indexMap.entrySet()) {
+						String key = e.getKey();
+						String value = e.getValue();
+						// 取尾部的时间戳
+						createTime = Long.parseLong(key.substring(key.length() - 10));
+						
+						cachedStringsMap.put(createTime, value);
+						if (key.compareTo(start) >= 0 && key.compareTo(end) < 0) {
+							recordOffSets.add(value);
+						}
+					}
+					line = indexFileReader.readLine();
+				}
+				// 如果无记录，也放入缓存，下次直接返回empty set
+				query2Cache.put(buyerid, cachedStringsMap);
+				// 说明有这个买家的记录
+				if(recordOffSets.size() > 0) {
+					Row kvMap;
+					for(String indexInfo : recordOffSets) {
+						String[] indexArray = StringUtils.getIndexInfo(indexInfo);
+						Long offset = Long.parseLong(indexArray[1]);
+						byte[] content = new byte[Integer.valueOf(indexArray[2])];
+						try (RandomAccessFile orderFileReader = new RandomAccessFile(indexArray[0], "r")) {
+							orderFileReader.seek(offset);
+							orderFileReader.read(content);
+	
+			//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
+//							System.out.println("order:"+line);
+							kvMap = StringUtils.createKVMapFromLine(new String(content), CommonConstants.SPLITTER);
+							buyerOrderQueue.offer(kvMap);
+						} catch (IOException e) {
+							// 忽略
+						} 
+					}
+				}
+			} catch(IOException e) {
+				
+			}
 		}
 		
 		
