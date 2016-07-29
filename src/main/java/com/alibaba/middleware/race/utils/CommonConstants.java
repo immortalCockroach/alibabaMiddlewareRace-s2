@@ -36,4 +36,8 @@ public class CommonConstants {
 	
 	public static final char SPLITTER = '\t';
 	
+	public static final int QUERY_PRINT_COUNT = 256;
+	
+	public static final int CACHE_PRINT_COUNT = 256;
+	
 }
