@@ -396,7 +396,7 @@ public class OrderSystemImpl implements OrderSystem {
 				}
 			}
 			
-			if (goodData!=null) {
+			if (goodData != null) {
 				for (KV kv : goodData.values()) {
 					if (queryingKeys == null || queryingKeys.contains(kv.key)) {
 						allkv.put(kv.key(), kv);
@@ -977,6 +977,10 @@ public class OrderSystemImpl implements OrderSystem {
 					}
 					line = indexFileReader.readLine();			
 				}
+				// 由于现在query4的求和可能直接查good信息，因此此处代表不存在对应的信息
+				if (indexArray == null) {
+					return null;
+				}
 				
 				Long offset = Long.parseLong(indexArray[1]);
 				byte[] content = new byte[Integer.valueOf(indexArray[2])];
@@ -1287,14 +1291,16 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 		}
 		// 快速处理 减少不必要的查询的join开销
+		String tag = null;
+		// 当为good表字段时快速处理
 		if (key.equals("price") || key.equals("offprice") || key.startsWith("a_g_")) {
 			return getGoodSumFromGood(goodid, key);
-		} else if (key.equals("amount") || key.startsWith("a_o_")) {
-			return getGoodSumFromBuyer(goodid, key);
-		} else if (key.equals("a_b_")) {
-			return getGoodSumFromOrder(goodid, key);
+		} else if (key.equals("amount") || key.startsWith("a_o_")) { //表示需要join buyer和order
+			tag = "buyer";
+		} else if (key.equals("a_b_")) { //表示只需要order数据
+			tag = "order";
 		}
-		// 无法和上面匹配的时候再调用最通用的遍历Index查询和join的方法
+		
 		List<Row> ordersData = new ArrayList<>(1024);
 		
 		List<String> cachedStrings;
@@ -1349,14 +1355,17 @@ public class OrderSystemImpl implements OrderSystem {
 		
 		HashSet<String> queryingKeys = new HashSet<String>();
 		queryingKeys.add(key);
-		Row goodData = getGoodRowFromOrderData(ordersData.get(0));
 		
 		
 		List<ResultImpl> allData = new ArrayList<ResultImpl>(ordersData.size());
-		// 使用已有的goodData去join 当集合为空时下面的代码不会被调用到
+		
 		for (Row orderData : ordersData) {
-			Row buyerData = getBuyerRowFromOrderData(orderData);
-			allData.add(ResultImpl.createResultRow(orderData, buyerData, goodData, queryingKeys));
+			// 当tag为buyer时才需要join buyer信息
+			Row buyerData = null;
+			if (tag.equals("buyer")) {
+				buyerData = getBuyerRowFromOrderData(orderData);
+			}
+			allData.add(ResultImpl.createResultRow(orderData, buyerData, null, queryingKeys));
 		}
 
 		// accumulate as Long
@@ -1409,7 +1418,7 @@ public class OrderSystemImpl implements OrderSystem {
 		orderData.putKV("goodid", goodId);
 		// 去good的indexFile中查找goodid对应的全部信息
 		Row goodData = getGoodRowFromOrderData(orderData);
-		// 说明good记录没有这个字段 直接返回null
+		// 说明good记录没有这个字段或者没有这个 直接返回null
 		KV kv = goodData.get(key);
 		if (kv == null) {
 			return null;
@@ -1440,13 +1449,5 @@ public class OrderSystemImpl implements OrderSystem {
 			Double result = ((double)value) * offsetRecords.size();
 			return new KV(key, Double.toString(result));
 		}
-	}
-	
-	private KeyValue getGoodSumFromBuyer(String goodId, String key) {
-		return null;
-	}
-	
-	private KeyValue getGoodSumFromOrder(String goodId, String key) {
-		return null;
 	}
 }
