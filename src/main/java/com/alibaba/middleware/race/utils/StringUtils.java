@@ -292,4 +292,25 @@ public class StringUtils {
 		} else
 			return new String(array, Charset.forName(charsetName));
 	}
+	/**
+	 * 将字符串转换为long或者double，无法转换的之后返回null
+	 * @param value
+	 * @return
+	 */
+	public static Object parseStringToNumber(String value) {
+		
+		try {
+			long longValue = Long.parseLong(value);
+			return longValue;
+		} catch(NumberFormatException e) {
+			
+		}
+		try {
+			double doubleValue = Double.parseDouble(value);
+			return doubleValue;
+		} catch(NumberFormatException e) {
+			
+		}
+		return null;
+	}
 }

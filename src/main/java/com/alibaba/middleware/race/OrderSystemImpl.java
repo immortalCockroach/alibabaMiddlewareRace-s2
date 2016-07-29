@@ -362,12 +362,19 @@ public class OrderSystemImpl implements OrderSystem {
 			this.orderid = orderid;
 			this.kvMap = kv;
 		}
-
+		
+		/**
+		 * 根据order good buyer来构造结果 buyer和good可以为null,相当于不join
+		 * 此处buyer和good可以为null是为了查询3 4的优化
+		 * @param orderData
+		 * @param buyerData
+		 * @param goodData
+		 * @param queryingKeys
+		 * @return
+		 */
 		public static ResultImpl createResultRow(Row orderData, Row buyerData, Row goodData,
 				Set<String> queryingKeys) {
-			if (orderData == null || buyerData == null || goodData == null) {
-				throw new RuntimeException("Bad data!");
-			}
+			
 			Row allkv = new Row();
 			long orderid;
 			try {
@@ -375,20 +382,25 @@ public class OrderSystemImpl implements OrderSystem {
 			} catch (TypeException e) {
 				throw new RuntimeException("Bad data!");
 			}
-
+			
 			for (KV kv : orderData.values()) {
 				if (queryingKeys == null || queryingKeys.contains(kv.key)) {
 					allkv.put(kv.key(), kv);
 				}
 			}
-			for (KV kv : buyerData.values()) {
-				if (queryingKeys == null || queryingKeys.contains(kv.key)) {
-					allkv.put(kv.key(), kv);
+			if(buyerData != null) {
+				for (KV kv : buyerData.values()) {
+					if (queryingKeys == null || queryingKeys.contains(kv.key)) {
+						allkv.put(kv.key(), kv);
+					}
 				}
 			}
-			for (KV kv : goodData.values()) {
-				if (queryingKeys == null || queryingKeys.contains(kv.key)) {
-					allkv.put(kv.key(), kv);
+			
+			if (goodData!=null) {
+				for (KV kv : goodData.values()) {
+					if (queryingKeys == null || queryingKeys.contains(kv.key)) {
+						allkv.put(kv.key(), kv);
+					}
 				}
 			}
 			return new ResultImpl(orderid, allkv);
@@ -1274,6 +1286,15 @@ public class OrderSystemImpl implements OrderSystem {
 				e.printStackTrace();
 			}
 		}
+		// 快速处理 减少不必要的查询的join开销
+		if (key.equals("price") || key.equals("offprice") || key.startsWith("a_g_")) {
+			return getGoodSumFromGood(goodid, key);
+		} else if (key.equals("amount") || key.startsWith("a_o_")) {
+			return getGoodSumFromBuyer(goodid, key);
+		} else if (key.equals("a_b_")) {
+			return getGoodSumFromOrder(goodid, key);
+		}
+		// 无法和上面匹配的时候再调用最通用的遍历Index查询和join的方法
 		List<Row> ordersData = new ArrayList<>(1024);
 		
 		List<String> cachedStrings;
@@ -1372,6 +1393,60 @@ public class OrderSystemImpl implements OrderSystem {
 		} catch (TypeException e) {
 		}
 
+		return null;
+	}
+	
+	/**
+	 * 当good不存在这个属性的时候，直接返回null
+	 * 否则计算出good的Order数 然后相乘并返回即可
+	 * @param goodId
+	 * @param key
+	 * @return
+	 */
+	private KeyValue getGoodSumFromGood(String goodId, String key) {
+		int index = indexFor(hashWithDistrub(goodId), CommonConstants.ORDER_SPLIT_SIZE);
+		Row orderData = new Row();
+		orderData.putKV("goodid", goodId);
+		// 去good的indexFile中查找goodid对应的全部信息
+		Row goodData = getGoodRowFromOrderData(orderData);
+		// 说明good记录没有这个字段 直接返回null
+		KV kv = goodData.get(key);
+		if (kv == null) {
+			return null;
+		}
+		Object value = StringUtils.parseStringToNumber(kv.rawValue);
+		if (value == null) {
+			return null;
+		}
+		String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
+		List<String> offsetRecords = new ArrayList<>(1024);
+		// 此处只是统计goodId对应的order的个数
+		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
+			String line = indexFileReader.readLine();
+			
+			while (line != null) {
+				// 获得一行中以<goodid>开头的行
+				offsetRecords.addAll(StringUtils.createListFromLongLineWithKey(line, goodId, CommonConstants.SPLITTER));
+				line = indexFileReader.readLine();
+			}
+		} catch (IOException e) {
+			
+		}
+		// 判断具体类型 相乘并返回
+		if (value instanceof Long) {
+			Long result = ((long)value) * offsetRecords.size();
+			return new KV(key, Long.toString(result));
+		} else {
+			Double result = ((double)value) * offsetRecords.size();
+			return new KV(key, Double.toString(result));
+		}
+	}
+	
+	private KeyValue getGoodSumFromBuyer(String goodId, String key) {
+		return null;
+	}
+	
+	private KeyValue getGoodSumFromOrder(String goodId, String key) {
 		return null;
 	}
 }
