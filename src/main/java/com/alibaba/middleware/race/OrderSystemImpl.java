@@ -875,8 +875,10 @@ public class OrderSystemImpl implements OrderSystem {
 				e.printStackTrace();
 			}
 		}
+		long start = 0L;
 		if (query1Count.incrementAndGet() % CommonConstants.QUERY_PRINT_COUNT == 0) {
 			System.out.println("query1count:" + query1Count.get());
+			start = System.currentTimeMillis();
 		}
 		Row query = new Row();
 		query.putKV("orderid", orderId);
@@ -943,6 +945,9 @@ public class OrderSystemImpl implements OrderSystem {
 //		finally {
 //			query1Lock.unlock();
 //		}
+		if (start != 0) {
+			System.out.println("query1 time:" + (System.currentTimeMillis() - start));
+		}
 		if (orderData == null) {
 			return null;
 		}
@@ -1237,6 +1242,7 @@ public class OrderSystemImpl implements OrderSystem {
 		long start = 0L;
 		if (query3Count.incrementAndGet() % CommonConstants.QUERY_PRINT_COUNT == 0) {
 			System.out.println("query3 count:" + query3Count.get());
+			start = System.currentTimeMillis();
 		}
 		final PriorityQueue<Row> salerGoodsQueue = new PriorityQueue<>(1024, new Comparator<Row>() {
 
@@ -1347,6 +1353,7 @@ public class OrderSystemImpl implements OrderSystem {
 		long start = 0L;
 		if (query4Count.incrementAndGet() % CommonConstants.QUERY_PRINT_COUNT == 0) {
 			System.out.println("query4 count:" + query4Count.get());
+			start = System.currentTimeMillis();
 		}
 		// 快速处理 减少不必要的查询的join开销
 		String tag = null;
