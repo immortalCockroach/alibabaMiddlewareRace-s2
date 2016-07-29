@@ -1488,11 +1488,16 @@ public class OrderSystemImpl implements OrderSystem {
 		orderData.putKV("goodid", goodId);
 		// 去good的indexFile中查找goodid对应的全部信息
 		Row goodData = getGoodRowFromOrderData(orderData);
+		// 说明goodid对应的good就不存在 直接返回null
+		if (goodData == null) {
+			return null;
+		}
 		// 说明good记录没有这个字段或者没有这个 直接返回null
 		KV kv = goodData.get(key);
 		if (kv == null) {
 			return null;
 		}
+		// 说明这个rawvalue不是long也不是double
 		Object value = StringUtils.parseStringToNumber(kv.rawValue);
 		if (value == null) {
 			return null;
