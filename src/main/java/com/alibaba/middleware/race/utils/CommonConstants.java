@@ -21,7 +21,7 @@ public class CommonConstants {
 	public static final int OTHER_SPLIT_SIZE = 2048;
 	
 	// 索引文件的每行record数目 整行的大小控制在200byte左右 此时读取和split性能较好，预估索引文件每行的单个记录在50bytes左右
-	public static final int INDEX_LINE_RECORDS = 10;
+	public static final int INDEX_LINE_RECORDS = 1;
 	
 	public static final int INDEX_BUFFER_SIZE = 50;
 	
