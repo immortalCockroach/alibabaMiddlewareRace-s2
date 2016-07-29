@@ -53,20 +53,20 @@ public class OrderSystemImpl implements OrderSystem {
 	 */
 	private int[] query1LineRecords;
 	private ExtendBufferedWriter[] query1IndexWriters;
-	private SimpleLRUCache<Long, String> query1Cache;
+//	private SimpleLRUCache<Long, String> query1Cache;
 	
 	
 	private int[] query2LineRecords;
 	private ExtendBufferedWriter[] query2IndexWriters;
-	private SimpleLRUCache<String, Map<Long,String>> query2Cache;
+//	private SimpleLRUCache<String, Map<Long,String>> query2Cache;
 //	private SimpleLRUCache<String, List<Long>> query2Cache;
 	
 	
 	private int[] query3LineRecords;
 	private ExtendBufferedWriter[] query3IndexWriters;
-	private SimpleLRUCache<String, List<String>> query3Cache;
+//	private SimpleLRUCache<String, List<String>> query3Cache;
 //	private BufferedWriter[] query4Writers;
-	private SimpleLRUCache<String, List<String>> query4Cache;
+//	private SimpleLRUCache<String, List<String>> query4Cache;
 	
 	private int[] buyerLineRecords;
 	private ExtendBufferedWriter[] buyersIndexWriters;
@@ -80,10 +80,10 @@ public class OrderSystemImpl implements OrderSystem {
 	private AtomicInteger query3Count;
 	private AtomicInteger query4Count;
 	
-	private AtomicInteger q1CacheHit;
-	private AtomicInteger q2CacheHit;
-	private AtomicInteger q3CacheHit;
-	private AtomicInteger q4CacheHit;
+//	private AtomicInteger q1CacheHit;
+//	private AtomicInteger q2CacheHit;
+//	private AtomicInteger q3CacheHit;
+//	private AtomicInteger q4CacheHit;
 	private AtomicInteger buyerCacheHit;
 	private AtomicInteger goodCacheHit;
 	
@@ -490,13 +490,13 @@ public class OrderSystemImpl implements OrderSystem {
 //		query2Lock = new ReentrantLock();
 //		query3Lock = new ReentrantLock();
 //		query4Lock = new ReentrantLock();
-		query1Cache = new SimpleLRUCache<>(32768);
+//		query1Cache = new SimpleLRUCache<>(32768);
 		this.query1LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
-		query2Cache = new SimpleLRUCache<>(16384);
+//		query2Cache = new SimpleLRUCache<>(16384);
 		this.query2LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
-		query3Cache = new SimpleLRUCache<>(16384);
+//		query3Cache = new SimpleLRUCache<>(16384);
 		this.query3LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
-		query4Cache = new SimpleLRUCache<>(16384);
+//		query4Cache = new SimpleLRUCache<>(16384);
 		
 		goodsCache = new SimpleLRUCache<>(32768);
 		this.goodLineRecords = new int[CommonConstants.OTHER_SPLIT_SIZE];
@@ -509,10 +509,10 @@ public class OrderSystemImpl implements OrderSystem {
 		query3Count = new AtomicInteger(0);
 		query4Count = new AtomicInteger(0);
 		
-		q1CacheHit = new AtomicInteger(0);
-		q2CacheHit = new AtomicInteger(0);
-		q3CacheHit = new AtomicInteger(0);
-		q4CacheHit = new AtomicInteger(0);
+//		q1CacheHit = new AtomicInteger(0);
+//		q2CacheHit = new AtomicInteger(0);
+//		q3CacheHit = new AtomicInteger(0);
+//		q4CacheHit = new AtomicInteger(0);
 		buyerCacheHit = new AtomicInteger(0);
 		goodCacheHit = new AtomicInteger(0);
 	}
@@ -566,17 +566,17 @@ public class OrderSystemImpl implements OrderSystem {
 //			System.out.println(1111 + " order not exist");
 //		}
 //		System.out.println(System.currentTimeMillis() - start);
-//		long start = System.currentTimeMillis();
-//		String buyerid = "wx-a0e0-6bda77db73ca";
-//		long startTime = 1462018520;
-//		long endTime = 1473999229;
-//		
-//		Iterator<Result> it = os.queryOrdersByBuyer(startTime, endTime, buyerid);
-//		System.out.println("time:"+(System.currentTimeMillis() - start));
-//		System.out.println("\n查询买家ID为" + buyerid + "的一定时间范围内的订单");
-//		while (it.hasNext()) {
-//			System.out.println(it.next());
-//		}
+		long start = System.currentTimeMillis();
+		String buyerid = "wx-a0e0-6bda77db73ca";
+		long startTime = 1462018520;
+		long endTime = 1473999229;
+		
+		Iterator<Result> it = os.queryOrdersByBuyer(startTime, endTime, buyerid);
+		System.out.println("time:"+(System.currentTimeMillis() - start));
+		System.out.println("\n查询买家ID为" + buyerid + "的一定时间范围内的订单");
+		while (it.hasNext()) {
+			System.out.println(it.next());
+		}
 		
 		//
 //		String goodid = "gd-b972-6926df8128c3";
@@ -592,12 +592,12 @@ public class OrderSystemImpl implements OrderSystem {
 //			System.out.println(it.next());
 //		}
 		//
-		long start = System.currentTimeMillis();
-		String goodid = "aye-abd1-5362b751f6e9";
-		String attr = "a_g_31975";
-		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
-		System.out.println(os.sumOrdersByGood(goodid, attr));
-		System.out.println(System.currentTimeMillis() -start);
+//		long start = System.currentTimeMillis();
+//		String goodid = "aye-abd1-5362b751f6e9";
+//		String attr = "a_g_31975";
+//		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
+//		System.out.println(os.sumOrdersByGood(goodid, attr));
+//		System.out.println(System.currentTimeMillis() -start);
 //		String goodid = "good_d191eeeb-fed1-4334-9c77-3ee6d6d66aff";
 //		String attr = "app_order_33_0";
 //		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
@@ -890,13 +890,13 @@ public class OrderSystemImpl implements OrderSystem {
 		// }
 		Row orderData = null;
 		
-		String cachedString = query1Cache.get(orderId);
-		if ( cachedString != null) {
-			orderData = StringUtils.createKVMapFromLine(cachedString, CommonConstants.SPLITTER);
-			if (q1CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
-				System.out.println("query1 cache hit:" + q1CacheHit.get());
-			}
-		} else {
+//		String cachedString = query1Cache.get(orderId);
+//		if ( cachedString != null) {
+//			orderData = StringUtils.createKVMapFromLine(cachedString, CommonConstants.SPLITTER);
+//			if (q1CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
+//				System.out.println("query1 cache hit:" + q1CacheHit.get());
+//			}
+//		} else {
 			int index = indexFor(hashWithDistrub(orderId), CommonConstants.ORDER_SPLIT_SIZE);
 			String indexFile = this.query1Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 			
@@ -931,7 +931,7 @@ public class OrderSystemImpl implements OrderSystem {
 	//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
 //					System.out.println("order:"+line);
 					orderData = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
-					query1Cache.put(orderId, line);
+//					query1Cache.put(orderId, line);
 					
 				} catch (IOException e) {
 					// 忽略
@@ -939,7 +939,7 @@ public class OrderSystemImpl implements OrderSystem {
 			} catch(IOException e) {
 				
 			}
-		}
+//		}
 		
 
 //		finally {
@@ -1132,24 +1132,24 @@ public class OrderSystemImpl implements OrderSystem {
 		});
 		
 		// 此处的Long为createtime;String为content
-		Map<Long,String> cachedStringsMap = query2Cache.get(buyerid);
-		if (cachedStringsMap != null) {
-			for (Map.Entry<Long, String> entry : cachedStringsMap.entrySet()) {
-				// 此处得到的都是某个buyerid对应的交易 所以不需要校验buyerid
-				if (entry.getKey() >= startTime && entry.getKey() < endTime) {
-					buyerOrderQueue.offer(StringUtils.createKVMapFromLine(entry.getValue(), CommonConstants.SPLITTER));
-				}
-			}
-			if (q2CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
-				System.out.println("query2 cache hit:" + q2CacheHit.get());
-			}
-		} else {
+//		Map<Long,String> cachedStringsMap = query2Cache.get(buyerid);
+//		if (cachedStringsMap != null) {
+//			for (Map.Entry<Long, String> entry : cachedStringsMap.entrySet()) {
+//				// 此处得到的都是某个buyerid对应的交易 所以不需要校验buyerid
+//				if (entry.getKey() >= startTime && entry.getKey() < endTime) {
+//					buyerOrderQueue.offer(StringUtils.createKVMapFromLine(entry.getValue(), CommonConstants.SPLITTER));
+//				}
+//			}
+//			if (q2CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
+//				System.out.println("query2 cache hit:" + q2CacheHit.get());
+//			}
+//		} else {
 			int index = indexFor(hashWithDistrub(buyerid), CommonConstants.ORDER_SPLIT_SIZE);
 	//		
 			String indexFile = this.query2Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 			
 			// 用于存储在cache中的map key为createtime;value为content
-			cachedStringsMap = new HashMap<>(512,1f);
+//			cachedStringsMap = new HashMap<>(512,1f);
 			
 			// 一个用户的所有order信息 key为createtime;value为file offset length
 			Map<Long, String> buyerOrderMap = new HashMap<>(512, 1f);
@@ -1169,8 +1169,9 @@ public class OrderSystemImpl implements OrderSystem {
 						// 由于时间测试的时候可能有负数或者不止10位数，此处使用
 						createTime = Long.parseLong(key.substring(20));
 //						System.out.println(createTime);
-						
-						buyerOrderMap.put(createTime, e.getValue());
+						if (createTime >= startTime && createTime < endTime) {
+							buyerOrderMap.put(createTime, e.getValue());
+						}
 					}
 					line = indexFileReader.readLine();
 				}
@@ -1185,24 +1186,24 @@ public class OrderSystemImpl implements OrderSystem {
 							orderFileReader.seek(offset);
 							orderFileReader.read(content);
 							line = new String(content);
-							Long timeKey = indexInfoEntry.getKey();
-							// 只有在[startTime,endTime)区间内的才会加入到本地查询的结果中
-							if (timeKey >= startTime && timeKey < endTime) {
-								kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
-								buyerOrderQueue.offer(kvMap);
-							}
+//							Long timeKey = indexInfoEntry.getKey();
+							
+//							if (timeKey >= startTime && timeKey < endTime) {
+							kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
+							buyerOrderQueue.offer(kvMap);
+//							}
 							// 所有结果都加入到buyer对应的cacheMap中，此时value已经为content
-							cachedStringsMap.put(timeKey, line);
+//							cachedStringsMap.put(timeKey, line);
 						} catch (IOException e) {
 							// 忽略
 						}
 					}
 				}
-				query2Cache.put(buyerid, cachedStringsMap);
+//				query2Cache.put(buyerid, cachedStringsMap);
 			} catch(IOException e) {
 				
 			}
-		}
+//		}
 		if (start != 0) {
 			System.out.println("query2 time:" + (System.currentTimeMillis() - start));
 		}
@@ -1262,14 +1263,14 @@ public class OrderSystemImpl implements OrderSystem {
 //		query3Lock.lock();
 //		System.out.println("index:" + index);
 		List<String> cachedStrings;
-		if ((cachedStrings = query3Cache.get(goodid)) != null) {
-			for (String content : cachedStrings) {
-				salerGoodsQueue.offer(StringUtils.createKVMapFromLine(content, CommonConstants.SPLITTER));
-			}
-			if (q3CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
-				System.out.println("query3 cache hit:" + q3CacheHit.get());
-			}
-		} else {
+//		if ((cachedStrings = query3Cache.get(goodid)) != null) {
+//			for (String content : cachedStrings) {
+//				salerGoodsQueue.offer(StringUtils.createKVMapFromLine(content, CommonConstants.SPLITTER));
+//			}
+//			if (q3CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
+//				System.out.println("query3 cache hit:" + q3CacheHit.get());
+//			}
+//		} else {
 			int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
 			String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 			cachedStrings = new ArrayList<>(1024);
@@ -1305,11 +1306,11 @@ public class OrderSystemImpl implements OrderSystem {
 					}
 				}
 				// 如果无记录，也放入缓存，下次直接返回empty set
-				query3Cache.put(goodid, cachedStrings);
+//				query3Cache.put(goodid, cachedStrings);
 			} catch (IOException e) {
 				
 			}
-		}
+//		}
 //		finally {
 //			query3Lock.unlock();
 //		}
@@ -1369,14 +1370,14 @@ public class OrderSystemImpl implements OrderSystem {
 		List<Row> ordersData = new ArrayList<>(1024);
 		
 		List<String> cachedStrings;
-		if ((cachedStrings = query4Cache.get(goodid)) != null) {
-			for (String content : cachedStrings) {
-				ordersData.add(StringUtils.createKVMapFromLine(content, CommonConstants.SPLITTER));
-			}
-			if (q4CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
-				System.out.println("query4 cache hit:" + q4CacheHit.get());
-			}
-		} else {
+//		if ((cachedStrings = query4Cache.get(goodid)) != null) {
+//			for (String content : cachedStrings) {
+//				ordersData.add(StringUtils.createKVMapFromLine(content, CommonConstants.SPLITTER));
+//			}
+//			if (q4CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
+//				System.out.println("query4 cache hit:" + q4CacheHit.get());
+//			}
+//		} else {
 			int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
 			String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 			cachedStrings = new ArrayList<>(1024);
@@ -1410,19 +1411,19 @@ public class OrderSystemImpl implements OrderSystem {
 						} 
 					}
 				}
-				query4Cache.put(goodid, cachedStrings);
+//				query4Cache.put(goodid, cachedStrings);
 			} catch (IOException e) {
 				
 			}
-		}
-		if (start != 0) {
-			System.out.println("query4 time:" + (System.currentTimeMillis() - start));
-		}
+//		}
+
 		// 如果不存在对应的order 直接返回null
 		if (ordersData.size() == 0) {
 			return null;
 		}
-		
+		if (start != 0) {
+			System.out.println("query4 time:" + (System.currentTimeMillis() - start));
+		}
 		HashSet<String> queryingKeys = new HashSet<String>();
 		queryingKeys.add(key);
 		
