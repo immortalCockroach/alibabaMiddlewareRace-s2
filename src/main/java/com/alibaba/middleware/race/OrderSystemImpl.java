@@ -1107,8 +1107,10 @@ public class OrderSystemImpl implements OrderSystem {
 				e.printStackTrace();
 			}
 		}
+		long start = 0L;
 		if (query2Count.incrementAndGet() % CommonConstants.QUERY_PRINT_COUNT == 0) {
 			System.out.println("query2 count:" + query2Count.get());
+			start = System.currentTimeMillis();
 		}
 		final PriorityQueue<Row> buyerOrderQueue = new PriorityQueue<>(512, new Comparator<Row>() {
 
@@ -1196,7 +1198,9 @@ public class OrderSystemImpl implements OrderSystem {
 				
 			}
 		}
-		
+		if (start != 0) {
+			System.out.println("query2 time:" + (System.currentTimeMillis() - start));
+		}
 		return new Iterator<OrderSystem.Result>() {
 
 			PriorityQueue<Row> o = buyerOrderQueue;
@@ -1230,6 +1234,7 @@ public class OrderSystemImpl implements OrderSystem {
 				e.printStackTrace();
 			}
 		}
+		long start = 0L;
 		if (query3Count.incrementAndGet() % CommonConstants.QUERY_PRINT_COUNT == 0) {
 			System.out.println("query3 count:" + query3Count.get());
 		}
@@ -1303,7 +1308,9 @@ public class OrderSystemImpl implements OrderSystem {
 //			query3Lock.unlock();
 //		}
 
-
+		if (start != 0) {
+			System.out.println("query3 time:" + (System.currentTimeMillis() - start));
+		}
 		return new Iterator<OrderSystem.Result>() {
 
 			final PriorityQueue<Row> o = salerGoodsQueue;
@@ -1337,6 +1344,7 @@ public class OrderSystemImpl implements OrderSystem {
 				e.printStackTrace();
 			}
 		}
+		long start = 0L;
 		if (query4Count.incrementAndGet() % CommonConstants.QUERY_PRINT_COUNT == 0) {
 			System.out.println("query4 count:" + query4Count.get());
 		}
@@ -1400,7 +1408,9 @@ public class OrderSystemImpl implements OrderSystem {
 				
 			}
 		}
-		
+		if (start != 0) {
+			System.out.println("query4 time:" + (System.currentTimeMillis() - start));
+		}
 		// 如果不存在对应的order 直接返回null
 		if (ordersData.size() == 0) {
 			return null;
