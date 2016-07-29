@@ -569,8 +569,8 @@ public class OrderSystemImpl implements OrderSystem {
 //		}
 		//
 		long start = System.currentTimeMillis();
-		String goodid = "al-9c4c-ac9ed4b6ad35";
-		String attr = "offprice";
+		String goodid = "aye-abd1-5362b751f6e9";
+		String attr = "a_g_31975";
 		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
 		System.out.println(os.sumOrdersByGood(goodid, attr));
 		System.out.println(System.currentTimeMillis() -start);
@@ -1295,9 +1295,9 @@ public class OrderSystemImpl implements OrderSystem {
 		// 当为good表字段时快速处理
 		if (key.equals("price") || key.equals("offprice") || key.startsWith("a_g_")) {
 			return getGoodSumFromGood(goodid, key);
-		} else if (key.equals("amount") || key.startsWith("a_o_")) { //表示需要join buyer和order
+		} else if (key.equals("amount") || key.startsWith("a_b_")) { //表示需要join buyer和order
 			tag = "buyer";
-		} else if (key.equals("a_b_")) { //表示只需要order数据
+		} else if (key.startsWith("a_o_")) { //表示只需要order数据
 			tag = "order";
 		}
 		
