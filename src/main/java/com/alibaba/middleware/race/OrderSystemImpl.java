@@ -20,6 +20,7 @@ import com.alibaba.middleware.race.utils.CommonConstants;
 import com.alibaba.middleware.race.utils.ExtendBufferedReader;
 import com.alibaba.middleware.race.utils.ExtendBufferedWriter;
 import com.alibaba.middleware.race.utils.IOUtils;
+import com.alibaba.middleware.race.utils.IndexBuffer;
 import com.alibaba.middleware.race.utils.SimpleLRUCache;
 import com.alibaba.middleware.race.utils.StringUtils;
 
@@ -203,6 +204,8 @@ public class OrderSystemImpl implements OrderSystem {
 		private String[] identities;
 		private int buildCount;
 		private int mod;
+		private IndexBuffer[] bufferArray;
+		
 		
 		public HashIndexCreator(String hashId, ExtendBufferedWriter[] offsetWriters,
 				int[] indexLineRecords, Collection<String> files, int bUCKET_SIZE, int blockSize, CountDownLatch latch, String[] identities) {
@@ -217,6 +220,7 @@ public class OrderSystemImpl implements OrderSystem {
 			this.identities = identities;
 			this.buildCount = 0;
 			this.mod = 524287;
+			this.bufferArray = new IndexBuffer[CommonConstants.INDEX_BUFFER_SIZE];
 		}
 
 		@Override
@@ -231,54 +235,110 @@ public class OrderSystemImpl implements OrderSystem {
 				long offset = 0L;
 				// 记录当前行的总长度
 				int length = 0;
+				int readLines;
 				try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, BLOCK_SIZE)) {
-					
-					String line = reader.readLine();
-					while (line != null) {
-						StringBuilder offSetMsg = new StringBuilder();
-						kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
-						// windows测试 提交的时候修改为1
-						length = line.getBytes().length;
-						
-						// orderId一定存在且为long
-						orderKV = kvMap.getKV(hashId);
-						index = indexFor(
-								hashWithDistrub(hashId.equals("orderid") ? orderKV.longValue : orderKV.rawValue),
-								BUCKET_SIZE);
-						// 获得对应的writer
+					String line;
+					while (true) {
+						for (readLines = 0; readLines < CommonConstants.INDEX_BUFFER_SIZE; readLines++) {
+							line = reader.readLine();
+							if (line == null) {
+								break;
+							}
+							StringBuilder offSetMsg = new StringBuilder();
+							kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
+							length = line.getBytes().length;
+							
+							// orderId一定存在且为long
+							orderKV = kvMap.getKV(hashId);
+							index = indexFor(
+									hashWithDistrub(hashId.equals("orderid") ? orderKV.longValue : orderKV.rawValue),
+									BUCKET_SIZE);
+							
+							for(String e : identities) {
+								offSetMsg.append(kvMap.getKV(e).rawValue) ;
+							}
+							offSetMsg.append(':');
+							offSetMsg.append(orderFile);
+							offSetMsg.append(' ');
+							offSetMsg.append(offset);
+							offSetMsg.append(' ');
+							offSetMsg.append(length);
+							offSetMsg.append('\t');
 
-						offsetBw = offSetwriters[index];
-						
-						// index file的写入 具体为identifier:file offset length
-						// 多个identifier采用拼接
-						for(String e : identities) {
-							offSetMsg.append(kvMap.getKV(e).rawValue) ;
+							
+							// 将对应index文件的行记录数++ 如果超过阈值则换行并清空
+							this.indexLineRecords[index]++;
+							if ( this.indexLineRecords[index] == CommonConstants.INDEX_LINE_RECORDS) {
+								offSetMsg.append('\n');
+								this.indexLineRecords[index] = 0;
+							}
+							
+							offset += (length + 1);
+							this.bufferArray[readLines] = new IndexBuffer(index, offSetMsg.toString());
+							
+							buildCount++;
+							if ((buildCount & mod) == 0) {
+								System.out.println(hashId + " construct:" + buildCount);
+							}
 						}
-						offSetMsg.append(':');
-						offSetMsg.append(orderFile);
-						offSetMsg.append(' ');
-						offSetMsg.append(offset);
-						offSetMsg.append(' ');
-						offSetMsg.append(length);
-						offSetMsg.append('\t');
-						// 写入对应的索引文件 此处不换行
-						offsetBw.write(offSetMsg.toString());
 						
-						// 将对应index文件的行记录数++ 如果超过阈值则换行并清空
-						this.indexLineRecords[index]++;
-						if ( this.indexLineRecords[index] == CommonConstants.INDEX_LINE_RECORDS) {
-							offsetBw.newLine();
-							this.indexLineRecords[index] = 0;
+						if (readLines == 0) {
+							break;
 						}
-						// 此处表示下一个offSet的开始 所以放到后面(提交的时候修改为1 因为linux和unix的换行符为\n)
-						offset += (length + 1);
+						while (readLines > 0) {
+							
+							offsetBw = offSetwriters[bufferArray[readLines - 1].getIndex()];
+							offsetBw.write(bufferArray[readLines - 1].getLine());
+							readLines--;
+						}
 						
-						buildCount++;
-						if ((buildCount & mod) == 0) {
-							System.out.println(hashId + " construct:" + buildCount);
-						}
-						line = reader.readLine();
-					}
+					}				
+//					String line = reader.readLine();
+//					while (line != null) {
+//						StringBuilder offSetMsg = new StringBuilder();
+//						kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
+//						// windows测试 提交的时候修改为1
+//						length = line.getBytes().length;
+//						
+//						// orderId一定存在且为long
+//						orderKV = kvMap.getKV(hashId);
+//						index = indexFor(
+//								hashWithDistrub(hashId.equals("orderid") ? orderKV.longValue : orderKV.rawValue),
+//								BUCKET_SIZE);
+//						// 获得对应的writer
+//
+//						offsetBw = offSetwriters[index];
+//						
+//						// index file的写入 具体为identifier:file offset length
+//						// 多个identifier采用拼接
+//						for(String e : identities) {
+//							offSetMsg.append(kvMap.getKV(e).rawValue) ;
+//						}
+//						offSetMsg.append(':');
+//						offSetMsg.append(orderFile);
+//						offSetMsg.append(' ');
+//						offSetMsg.append(offset);
+//						offSetMsg.append(' ');
+//						offSetMsg.append(length);
+//						offSetMsg.append('\t');
+//						// 写入对应的索引文件 此处不换行
+//						offsetBw.write(offSetMsg.toString());
+//						
+//						// 将对应index文件的行记录数++ 如果超过阈值则换行并清空
+//						this.indexLineRecords[index]++;
+//						if ( this.indexLineRecords[index] == CommonConstants.INDEX_LINE_RECORDS) {
+//							offsetBw.newLine();
+//							this.indexLineRecords[index] = 0;
+//						}
+//						// 此处表示下一个offSet的开始 所以放到后面(提交的时候修改为1 因为linux和unix的换行符为\n)
+//						offset += (length + 1);
+//						
+//						buildCount++;
+//						if ((buildCount & mod) == 0) {
+//							System.out.println(hashId + " construct:" + buildCount);
+//						}
+//						line = reader.readLine();
+//					}
 					
 				} catch (IOException e) {
 					// 忽略
@@ -991,7 +1051,7 @@ public class OrderSystemImpl implements OrderSystem {
 				e.printStackTrace();
 			}
 		}
-		final PriorityQueue<Row> buyerOrderQueue = new PriorityQueue<>(256, new Comparator<Row>() {
+		final PriorityQueue<Row> buyerOrderQueue = new PriorityQueue<>(512, new Comparator<Row>() {
 
 			@Override
 			public int compare(Row o1, Row o2) {
@@ -1020,10 +1080,10 @@ public class OrderSystemImpl implements OrderSystem {
 			String indexFile = this.query2Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 			
 			// 用于存储在cache中的map key为createtime;value为content
-			cachedStringsMap = new HashMap<>(256,1f);
+			cachedStringsMap = new HashMap<>(512,1f);
 			
 			// 一个用户的所有order信息 key为createtime;value为file offset length
-			Map<Long, String> buyerOrderMap = new HashMap<>(256, 1f);
+			Map<Long, String> buyerOrderMap = new HashMap<>(512, 1f);
 			
 			// 用于查找一个文件中对应的信息 key为buyer+createtime;value为filename offset length
 			Map<String,String> indexMap = null;

@@ -18,7 +18,7 @@ public class SimpleLRUCache<K, V> {
 	private HashMap<K, Entry<K, V>> hashMap;
 	public SimpleLRUCache(int cacheSize) {
         MAX_CACHE_SIZE = cacheSize;
-        hashMap = new HashMap<K, Entry<K, V>>(cacheSize);
+        hashMap = new HashMap<K, Entry<K, V>>(cacheSize, 1f);
     }
 
 	public synchronized void put(K key, V value) {
