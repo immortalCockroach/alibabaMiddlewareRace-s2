@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1152,7 +1153,7 @@ public class OrderSystemImpl implements OrderSystem {
 //			cachedStringsMap = new HashMap<>(512,1f);
 			
 			// 一个用户的所有order信息 key为createtime;value为file offset length
-			Map<Long, String> buyerOrderMap = new HashMap<>(512, 1f);
+			List<String> buyerOrderList = new ArrayList<>(512);
 			
 			// 用于查找一个文件中对应的信息 key为buyer+createtime;value为filename offset length
 			Map<String,String> indexMap = null;
@@ -1166,39 +1167,60 @@ public class OrderSystemImpl implements OrderSystem {
 					Long createTime;
 					for (Map.Entry<String, String> e : indexMap.entrySet()) {
 						String key = e.getKey();
-						// 由于时间测试的时候可能有负数或者不止10位数，此处使用
+						// 由于时间测试的时候可能有负数或者不止10位数，此处使用去掉买家id的方式获得时间戳
 						createTime = Long.parseLong(key.substring(20));
 //						System.out.println(createTime);
 						if (createTime >= startTime && createTime < endTime) {
-							buyerOrderMap.put(createTime, e.getValue());
+							buyerOrderList.add(e.getValue());
 						}
 					}
 					line = indexFileReader.readLine();
 				}
+//				for (String s:buyerOrderList) {
+//					System.out.println(s);
+//				}
 				// 说明有这个买家的时间段记录
-				if (buyerOrderMap.size() > 0) {
+				if (buyerOrderList.size() > 0) {
+//					Collections.sort(buyerOrderList);
 					Row kvMap;
-					for (Map.Entry<Long, String> indexInfoEntry : buyerOrderMap.entrySet()) {
-						String[] indexArray = StringUtils.getIndexInfo(indexInfoEntry.getValue());
+					for (String orderString : buyerOrderList) {
+						String[] indexArray = StringUtils.getIndexInfo(orderString);
 						Long offset = Long.parseLong(indexArray[1]);
 						byte[] content = new byte[Integer.valueOf(indexArray[2])];
 						try (RandomAccessFile orderFileReader = new RandomAccessFile(indexArray[0], "r")) {
 							orderFileReader.seek(offset);
 							orderFileReader.read(content);
 							line = new String(content);
-//							Long timeKey = indexInfoEntry.getKey();
-							
-//							if (timeKey >= startTime && timeKey < endTime) {
+
 							kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
 							buyerOrderQueue.offer(kvMap);
-//							}
-							// 所有结果都加入到buyer对应的cacheMap中，此时value已经为content
-//							cachedStringsMap.put(timeKey, line);
+
 						} catch (IOException e) {
 							// 忽略
 						}
 					}
 				}
+//					for (Map.Entry<Long, String> indexInfoEntry : buyerOrderMap.entrySet()) {
+//						String[] indexArray = StringUtils.getIndexInfo(indexInfoEntry.getValue());
+//						Long offset = Long.parseLong(indexArray[1]);
+//						byte[] content = new byte[Integer.valueOf(indexArray[2])];
+//						try (RandomAccessFile orderFileReader = new RandomAccessFile(indexArray[0], "r")) {
+//							orderFileReader.seek(offset);
+//							orderFileReader.read(content);
+//							line = new String(content);
+////							Long timeKey = indexInfoEntry.getKey();
+//							
+////							if (timeKey >= startTime && timeKey < endTime) {
+//							kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
+//							buyerOrderQueue.offer(kvMap);
+////							}
+//							// 所有结果都加入到buyer对应的cacheMap中，此时value已经为content
+////							cachedStringsMap.put(timeKey, line);
+//						} catch (IOException e) {
+//							// 忽略
+//						}
+//					}
+//				}
 //				query2Cache.put(buyerid, cachedStringsMap);
 			} catch(IOException e) {
 				
