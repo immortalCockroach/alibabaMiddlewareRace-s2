@@ -54,7 +54,7 @@ public class OrderSystemImpl implements OrderSystem {
 	 */
 	private int[] query1LineRecords;
 	private ExtendBufferedWriter[] query1IndexWriters;
-//	private SimpleLRUCache<Long, String> query1Cache;
+	private SimpleLRUCache<Long, String> query1Cache;
 	
 	
 	private int[] query2LineRecords;
@@ -65,9 +65,9 @@ public class OrderSystemImpl implements OrderSystem {
 	
 	private int[] query3LineRecords;
 	private ExtendBufferedWriter[] query3IndexWriters;
-//	private SimpleLRUCache<String, List<String>> query3Cache;
+	private SimpleLRUCache<String, List<String>> query3Cache;
 //	private BufferedWriter[] query4Writers;
-//	private SimpleLRUCache<String, List<String>> query4Cache;
+	private SimpleLRUCache<String, List<String>> query4Cache;
 	
 	private int[] buyerLineRecords;
 	private ExtendBufferedWriter[] buyersIndexWriters;
@@ -81,10 +81,10 @@ public class OrderSystemImpl implements OrderSystem {
 	private AtomicInteger query3Count;
 	private AtomicInteger query4Count;
 	
-//	private AtomicInteger q1CacheHit;
+	private AtomicInteger q1CacheHit;
 //	private AtomicInteger q2CacheHit;
-//	private AtomicInteger q3CacheHit;
-//	private AtomicInteger q4CacheHit;
+	private AtomicInteger q3CacheHit;
+	private AtomicInteger q4CacheHit;
 	private AtomicInteger buyerCacheHit;
 	private AtomicInteger goodCacheHit;
 	
@@ -491,13 +491,13 @@ public class OrderSystemImpl implements OrderSystem {
 //		query2Lock = new ReentrantLock();
 //		query3Lock = new ReentrantLock();
 //		query4Lock = new ReentrantLock();
-//		query1Cache = new SimpleLRUCache<>(32768);
+		query1Cache = new SimpleLRUCache<>(32768);
 		this.query1LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
 //		query2Cache = new SimpleLRUCache<>(16384);
 		this.query2LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
-//		query3Cache = new SimpleLRUCache<>(16384);
+		query3Cache = new SimpleLRUCache<>(16384);
 		this.query3LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
-//		query4Cache = new SimpleLRUCache<>(16384);
+		query4Cache = new SimpleLRUCache<>(16384);
 		
 		goodsCache = new SimpleLRUCache<>(32768);
 		this.goodLineRecords = new int[CommonConstants.OTHER_SPLIT_SIZE];
@@ -510,10 +510,10 @@ public class OrderSystemImpl implements OrderSystem {
 		query3Count = new AtomicInteger(0);
 		query4Count = new AtomicInteger(0);
 		
-//		q1CacheHit = new AtomicInteger(0);
+		q1CacheHit = new AtomicInteger(0);
 //		q2CacheHit = new AtomicInteger(0);
-//		q3CacheHit = new AtomicInteger(0);
-//		q4CacheHit = new AtomicInteger(0);
+		q3CacheHit = new AtomicInteger(0);
+		q4CacheHit = new AtomicInteger(0);
 		buyerCacheHit = new AtomicInteger(0);
 		goodCacheHit = new AtomicInteger(0);
 	}
@@ -891,13 +891,13 @@ public class OrderSystemImpl implements OrderSystem {
 		// }
 		Row orderData = null;
 		
-//		String cachedString = query1Cache.get(orderId);
-//		if ( cachedString != null) {
-//			orderData = StringUtils.createKVMapFromLine(cachedString, CommonConstants.SPLITTER);
-//			if (q1CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
-//				System.out.println("query1 cache hit:" + q1CacheHit.get());
-//			}
-//		} else {
+		String cachedString = query1Cache.get(orderId);
+		if ( cachedString != null) {
+			orderData = StringUtils.createKVMapFromLine(cachedString, CommonConstants.SPLITTER);
+			if (q1CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
+				System.out.println("query1 cache hit:" + q1CacheHit.get());
+			}
+		} else {
 			int index = indexFor(hashWithDistrub(orderId), CommonConstants.ORDER_SPLIT_SIZE);
 			String indexFile = this.query1Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 			
@@ -932,7 +932,7 @@ public class OrderSystemImpl implements OrderSystem {
 	//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
 //					System.out.println("order:"+line);
 					orderData = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
-//					query1Cache.put(orderId, line);
+					query1Cache.put(orderId, line);
 					
 				} catch (IOException e) {
 					// 忽略
@@ -940,7 +940,7 @@ public class OrderSystemImpl implements OrderSystem {
 			} catch(IOException e) {
 				
 			}
-//		}
+		}
 		
 
 //		finally {
@@ -998,7 +998,7 @@ public class OrderSystemImpl implements OrderSystem {
 		String cachedString = goodsCache.get(goodId);
 		if (cachedString != null) {
 			goodData = StringUtils.createKVMapFromLine(cachedString, CommonConstants.SPLITTER);
-			if (buyerCacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
+			if (goodCacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
 				System.out.println("good cache hit:" + goodCacheHit.get());
 			}
 		} else {		
@@ -1285,14 +1285,14 @@ public class OrderSystemImpl implements OrderSystem {
 //		query3Lock.lock();
 //		System.out.println("index:" + index);
 		List<String> cachedStrings;
-//		if ((cachedStrings = query3Cache.get(goodid)) != null) {
-//			for (String content : cachedStrings) {
-//				salerGoodsQueue.offer(StringUtils.createKVMapFromLine(content, CommonConstants.SPLITTER));
-//			}
-//			if (q3CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
-//				System.out.println("query3 cache hit:" + q3CacheHit.get());
-//			}
-//		} else {
+		if ((cachedStrings = query3Cache.get(goodid)) != null) {
+			for (String content : cachedStrings) {
+				salerGoodsQueue.offer(StringUtils.createKVMapFromLine(content, CommonConstants.SPLITTER));
+			}
+			if (q3CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
+				System.out.println("query3 cache hit:" + q3CacheHit.get());
+			}
+		} else {
 			int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
 			String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 			cachedStrings = new ArrayList<>(1024);
@@ -1328,11 +1328,11 @@ public class OrderSystemImpl implements OrderSystem {
 					}
 				}
 				// 如果无记录，也放入缓存，下次直接返回empty set
-//				query3Cache.put(goodid, cachedStrings);
+				query3Cache.put(goodid, cachedStrings);
 			} catch (IOException e) {
 				
 			}
-//		}
+		}
 //		finally {
 //			query3Lock.unlock();
 //		}
@@ -1392,14 +1392,14 @@ public class OrderSystemImpl implements OrderSystem {
 		List<Row> ordersData = new ArrayList<>(1024);
 		
 		List<String> cachedStrings;
-//		if ((cachedStrings = query4Cache.get(goodid)) != null) {
-//			for (String content : cachedStrings) {
-//				ordersData.add(StringUtils.createKVMapFromLine(content, CommonConstants.SPLITTER));
-//			}
-//			if (q4CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
-//				System.out.println("query4 cache hit:" + q4CacheHit.get());
-//			}
-//		} else {
+		if ((cachedStrings = query4Cache.get(goodid)) != null) {
+			for (String content : cachedStrings) {
+				ordersData.add(StringUtils.createKVMapFromLine(content, CommonConstants.SPLITTER));
+			}
+			if (q4CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
+				System.out.println("query4 cache hit:" + q4CacheHit.get());
+			}
+		} else {
 			int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
 			String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 			cachedStrings = new ArrayList<>(1024);
@@ -1433,11 +1433,11 @@ public class OrderSystemImpl implements OrderSystem {
 						} 
 					}
 				}
-//				query4Cache.put(goodid, cachedStrings);
+				query4Cache.put(goodid, cachedStrings);
 			} catch (IOException e) {
 				
 			}
-//		}
+		}
 
 		// 如果不存在对应的order 直接返回null
 		if (ordersData.size() == 0) {
