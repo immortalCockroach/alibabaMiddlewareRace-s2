@@ -378,7 +378,7 @@ public class OrderSystemImpl implements OrderSystem {
 		
 		/**
 		 * 根据order good buyer来构造结果 buyer和good可以为null,相当于不join
-		 * 此处buyer和good可以为null是为了查询3 4的优化
+		 * 此处buyer和good可以为null是为了查询join的优化
 		 * @param orderData
 		 * @param buyerData
 		 * @param goodData
@@ -876,10 +876,9 @@ public class OrderSystemImpl implements OrderSystem {
 				e.printStackTrace();
 			}
 		}
-		long start = 0L;
+		final long start = System.currentTimeMillis();;
 		if (query1Count.incrementAndGet() % CommonConstants.QUERY_PRINT_COUNT == 0) {
-			System.out.println("query1count:" + query1Count.get());
-			start = System.currentTimeMillis();
+			System.out.println("query1count:" + query1Count.get());	
 		}
 		Row query = new Row();
 		query.putKV("orderid", orderId);
@@ -946,7 +945,7 @@ public class OrderSystemImpl implements OrderSystem {
 //		finally {
 //			query1Lock.unlock();
 //		}
-		if (start != 0) {
+		if (query1Count.get() % CommonConstants.QUERY_PRINT_COUNT == 0) {
 			System.out.println("query1 time:" + (System.currentTimeMillis() - start));
 		}
 		if (orderData == null) {
@@ -1092,9 +1091,55 @@ public class OrderSystemImpl implements OrderSystem {
 	 * @return
 	 */
 	private ResultImpl createResultFromOrderData(Row orderData, Collection<String> keys) {
-		Row buyerData = getBuyerRowFromOrderData(orderData);
-		Row goodData = getGoodRowFromOrderData(orderData);
+		String tag = "all";
+		Row buyerData = null;
+		Row goodData = null;
+		// keys为null或者keys 不止一个的时候和以前的方式一样 all join
+		if (keys != null && keys.size() == 1) {
+			tag = getKeyJoin((String)keys.toArray()[0]);
+		}
+		// all的话join两次 buyer或者good join1次 order不join
+		if (tag.equals("buyer") || tag.equals("all")) {
+			buyerData = getBuyerRowFromOrderData(orderData);
+		}
+		if (tag.equals("good") || tag.equals("all")) {
+			goodData = getGoodRowFromOrderData(orderData);
+		}
 		return ResultImpl.createResultRow(orderData, buyerData, goodData, createQueryKeys(keys));
+	}
+	/**
+	 * 判断key的join 只对单个key有效果 order代表不join
+	 * buyer代表只join buyer表 good表示只join good表
+	 * 返回all代表无法判断 全部join
+	 * @param key
+	 * @return
+	 */
+	private String getKeyJoin(String key) {
+		if(key.startsWith("a_b_")) {
+			return "buyer";
+		} 
+		
+		if (key.startsWith("a_g_")) {
+			return "good";
+		}
+		
+		if (key.startsWith("a_o_")) {
+			return "order";
+		}
+		if (key.equals("orderid") || key.equals("buyerid") || key.equals("goodid") || key.equals("createtime")
+				|| key.equals("amount") || key.equals("done") || key.equals("remark")) {
+			return "order";
+		}
+		
+		if (key.equals("buyername") || key.equals("address") || key.equals("contactphone")) {
+			return "buyer";
+		}
+		
+		if (key.equals("price") || key.equals("offprice") || key.equals("description") || key.equals("good_name")) {
+			return "good";
+		}
+		
+		return "all";
 	}
 
 	private HashSet<String> createQueryKeys(Collection<String> keys) {
@@ -1113,10 +1158,9 @@ public class OrderSystemImpl implements OrderSystem {
 				e.printStackTrace();
 			}
 		}
-		long start = 0L;
+		final long start = System.currentTimeMillis();
 		if (query2Count.incrementAndGet() % CommonConstants.QUERY_PRINT_COUNT == 0) {
 			System.out.println("query2 count:" + query2Count.get());
-			start = System.currentTimeMillis();
 		}
 		final PriorityQueue<Row> buyerOrderQueue = new PriorityQueue<>(512, new Comparator<Row>() {
 
@@ -1226,9 +1270,6 @@ public class OrderSystemImpl implements OrderSystem {
 				
 			}
 //		}
-		if (start != 0) {
-			System.out.println("query2 time:" + (System.currentTimeMillis() - start));
-		}
 		return new Iterator<OrderSystem.Result>() {
 
 			PriorityQueue<Row> o = buyerOrderQueue;
@@ -1240,6 +1281,9 @@ public class OrderSystemImpl implements OrderSystem {
 
 			public Result next() {
 				if (!hasNext()) {
+					if (query2Count.get() % CommonConstants.QUERY_PRINT_COUNT ==0) {
+						System.out.println("query2 time:"+ (System.currentTimeMillis() - start));
+					}
 					return null;
 				}
 				Row orderData = buyerOrderQueue.poll();
@@ -1262,10 +1306,9 @@ public class OrderSystemImpl implements OrderSystem {
 				e.printStackTrace();
 			}
 		}
-		long start = 0L;
+		final long start = System.currentTimeMillis();
 		if (query3Count.incrementAndGet() % CommonConstants.QUERY_PRINT_COUNT == 0) {
 			System.out.println("query3 count:" + query3Count.get());
-			start = System.currentTimeMillis();
 		}
 		final PriorityQueue<Row> salerGoodsQueue = new PriorityQueue<>(1024, new Comparator<Row>() {
 
@@ -1280,7 +1323,7 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 
 		});
-		 final Collection<String> queryKeys = keys;
+		final Collection<String> queryKeys = keys;
 
 //		query3Lock.lock();
 //		System.out.println("index:" + index);
@@ -1337,24 +1380,34 @@ public class OrderSystemImpl implements OrderSystem {
 //			query3Lock.unlock();
 //		}
 
-		if (start != 0) {
-			System.out.println("query3 time:" + (System.currentTimeMillis() - start));
-		}
+//		if (start != 0) {
+//			System.out.println("query3 time:" + (System.currentTimeMillis() - start));
+//		}
+
 		return new Iterator<OrderSystem.Result>() {
 
 			final PriorityQueue<Row> o = salerGoodsQueue;
 			// 使用orderData(任意一个都对应同一个good信息)去查找对应的goodData
 			final Row goodData = o.peek() == null ? null : getGoodRowFromOrderData(o.peek());
+			// 如果keys
+			final String tag = queryKeys != null && queryKeys.size() == 1? getKeyJoin((String)queryKeys.toArray()[0]): "all";
 			public boolean hasNext() {
 				return o != null && o.size() > 0;
 			}
 
 			public Result next() {
 				if (!hasNext()) {
+					if (query3Count.get() % CommonConstants.QUERY_PRINT_COUNT ==0) {
+						System.out.println("query3 time:"+ (System.currentTimeMillis() - start));
+					}
 					return null;
 				}
 				Row orderData = o.poll();
-				Row buyerData = getBuyerRowFromOrderData(orderData);
+				Row buyerData = null;
+				// 当时all或者buyer的时候才去join buyer
+				if (tag.equals("buyer") || tag.equals("all")) {
+					getBuyerRowFromOrderData(orderData);
+				}
 				return ResultImpl.createResultRow(orderData, buyerData, goodData, createQueryKeys(queryKeys));
 			}
 
@@ -1373,13 +1426,13 @@ public class OrderSystemImpl implements OrderSystem {
 				e.printStackTrace();
 			}
 		}
-		long start = 0L;
+		long start = System.currentTimeMillis();;
 		if (query4Count.incrementAndGet() % CommonConstants.QUERY_PRINT_COUNT == 0) {
 			System.out.println("query4 count:" + query4Count.get());
-			start = System.currentTimeMillis();
+			
 		}
 		// 快速处理 减少不必要的查询的join开销
-		String tag = null;
+		String tag = "all";
 		// 当为good表字段时快速处理
 		if (key.equals("price") || key.equals("offprice") || key.startsWith("a_g_")) {
 			return getGoodSumFromGood(goodid, key);
@@ -1443,9 +1496,6 @@ public class OrderSystemImpl implements OrderSystem {
 		if (ordersData.size() == 0) {
 			return null;
 		}
-		if (start != 0) {
-			System.out.println("query4 time:" + (System.currentTimeMillis() - start));
-		}
 		HashSet<String> queryingKeys = new HashSet<String>();
 		queryingKeys.add(key);
 		
@@ -1455,12 +1505,14 @@ public class OrderSystemImpl implements OrderSystem {
 		for (Row orderData : ordersData) {
 			// 当tag为buyer时才需要join buyer信息
 			Row buyerData = null;
-			if (tag.equals("buyer")) {
+			if (tag.equals("buyer") || tag.equals("all")) {
 				buyerData = getBuyerRowFromOrderData(orderData);
 			}
 			allData.add(ResultImpl.createResultRow(orderData, buyerData, null, queryingKeys));
 		}
-
+		if (query4Count.get() % CommonConstants.QUERY_PRINT_COUNT ==0) {
+			System.out.println("query4 time:"+ (System.currentTimeMillis() - start));
+		}
 		// accumulate as Long
 		try {
 			boolean hasValidData = false;
