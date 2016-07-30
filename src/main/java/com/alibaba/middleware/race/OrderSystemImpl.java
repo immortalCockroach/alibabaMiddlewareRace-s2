@@ -543,10 +543,11 @@ public class OrderSystemImpl implements OrderSystem {
 
 		// 用例
 //		long start = System.currentTimeMillis();
-//		long orderid = 609670049;
+//		long orderid = 587905148;
 //		System.out.println("\n查询订单号为" + orderid + "的订单");
 //		List<String> keys = new ArrayList<>();
-////		keys.add("description");
+//		keys.add("createtime");
+////		keys.add("buyerid");
 //		System.out.println(os.queryOrder(orderid, keys));
 //		System.out.println(System.currentTimeMillis()-start);
 //		System.out.println("\n查询订单号为" + orderid + "的订单，查询的keys为空，返回订单，但没有kv数据");
@@ -567,31 +568,31 @@ public class OrderSystemImpl implements OrderSystem {
 //			System.out.println(1111 + " order not exist");
 //		}
 //		System.out.println(System.currentTimeMillis() - start);
-		long start = System.currentTimeMillis();
-		String buyerid = "wx-a0e0-6bda77db73ca";
-		long startTime = 1462018520;
-		long endTime = 1473999229;
-		
-		Iterator<Result> it = os.queryOrdersByBuyer(startTime, endTime, buyerid);
-		System.out.println("time:"+(System.currentTimeMillis() - start));
-		System.out.println("\n查询买家ID为" + buyerid + "的一定时间范围内的订单");
-		while (it.hasNext()) {
-			System.out.println(it.next());
-		}
-		
-		//
-//		String goodid = "gd-b972-6926df8128c3";
-//		String salerid = "almm-b250-b1880d628b9a";
-//		System.out.println("\n查询商品id为" + goodid + "，商家id为" + salerid + "的订单");
-//		List<String> keys = new ArrayList<>();
-//		keys.add("a_g_32587");
-//		keys.add("a_o_30709");
 //		long start = System.currentTimeMillis();
-//		Iterator it = os.queryOrdersBySaler(salerid, goodid, keys);
-//		System.out.println("time:"+(System.currentTimeMillis()-start));
+//		String buyerid = "wx-a0e0-6bda77db73ca";
+//		long startTime = 1462018520;
+//		long endTime = 1473999229;
+//		
+//		Iterator<Result> it = os.queryOrdersByBuyer(startTime, endTime, buyerid);
+//		System.out.println("time:"+(System.currentTimeMillis() - start));
+//		System.out.println("\n查询买家ID为" + buyerid + "的一定时间范围内的订单");
 //		while (it.hasNext()) {
 //			System.out.println(it.next());
 //		}
+		
+		//
+		String goodid = "gd-a3ed-1beb698256ce";
+		String salerid = "wx-b269-bcf6e30107ae";
+		System.out.println("\n查询商品id为" + goodid + "，商家id为" + salerid + "的订单");
+		List<String> keys = new ArrayList<>();
+		keys.add("a_g_5814");
+//		keys.add("a_o_30709");
+		long start = System.currentTimeMillis();
+		Iterator it = os.queryOrdersBySaler(salerid, goodid, keys);
+		System.out.println("time:"+(System.currentTimeMillis()-start));
+		while (it.hasNext()) {
+			System.out.println(it.next());
+		}
 		//
 //		long start = System.currentTimeMillis();
 //		String goodid = "aye-abd1-5362b751f6e9";
@@ -1135,7 +1136,7 @@ public class OrderSystemImpl implements OrderSystem {
 			return "buyer";
 		}
 		
-		if (key.equals("price") || key.equals("offprice") || key.equals("description") || key.equals("good_name")) {
+		if (key.equals("salerid") || key.equals("price") || key.equals("offprice") || key.equals("description") || key.equals("good_name")) {
 			return "good";
 		}
 		
@@ -1390,7 +1391,7 @@ public class OrderSystemImpl implements OrderSystem {
 			// 使用orderData(任意一个都对应同一个good信息)去查找对应的goodData
 			final Row goodData = o.peek() == null ? null : getGoodRowFromOrderData(o.peek());
 			// 如果keys
-			final String tag = queryKeys != null && queryKeys.size() == 1? getKeyJoin((String)queryKeys.toArray()[0]): "all";
+			final String tag = queryKeys != null && queryKeys.size() == 1 ? getKeyJoin((String)queryKeys.toArray()[0]): "all";
 			public boolean hasNext() {
 				return o != null && o.size() > 0;
 			}
@@ -1406,7 +1407,8 @@ public class OrderSystemImpl implements OrderSystem {
 				Row buyerData = null;
 				// 当时all或者buyer的时候才去join buyer
 				if (tag.equals("buyer") || tag.equals("all")) {
-					getBuyerRowFromOrderData(orderData);
+//					System.out.println("join");
+					buyerData = getBuyerRowFromOrderData(orderData);
 				}
 				return ResultImpl.createResultRow(orderData, buyerData, goodData, createQueryKeys(queryKeys));
 			}
