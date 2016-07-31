@@ -1184,7 +1184,7 @@ public class OrderSystemImpl implements OrderSystem {
 		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
 			System.out.println("query2 count:" + query2Count.get());
 		}
-		final PriorityQueue<Row> buyerOrderQueue = new PriorityQueue<>(512, new Comparator<Row>() {
+		final PriorityQueue<Row> buyerOrderQueue = new PriorityQueue<>(100, new Comparator<Row>() {
 
 			@Override
 			public int compare(Row o1, Row o2) {
@@ -1219,10 +1219,10 @@ public class OrderSystemImpl implements OrderSystem {
 //			cachedStringsMap = new HashMap<>(512,1f);
 			
 			// 一个用户的所有order信息 key为createtime;value为file offset length
-			List<String> buyerOrderList = new ArrayList<>(512);
+			List<String> buyerOrderList = new ArrayList<>(100);
 			
 			// 用于查找一个文件中对应的信息 key为buyer+createtime;value为filename offset length
-			Map<String,String> indexMap = null;
+//			Map<String,String> indexMap = null;
 
 			try (ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 				String line = indexFileReader.readLine();
@@ -1350,7 +1350,7 @@ public class OrderSystemImpl implements OrderSystem {
 		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
 			System.out.println("query3 count:" + query3Count.get());
 		}
-		final PriorityQueue<Row> salerGoodsQueue = new PriorityQueue<>(1024, new Comparator<Row>() {
+		final PriorityQueue<Row> salerGoodsQueue = new PriorityQueue<>(100, new Comparator<Row>() {
 
 			@Override
 			public int compare(Row o1, Row o2) {
@@ -1378,8 +1378,8 @@ public class OrderSystemImpl implements OrderSystem {
 		} else {
 			int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
 			String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
-			cachedStrings = new ArrayList<>(1024);
-			List<String> offsetRecords = new ArrayList<>(1024);
+			cachedStrings = new ArrayList<>(100);
+			List<String> offsetRecords = new ArrayList<>(100);
 			try (ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 				String line = indexFileReader.readLine();
 				
@@ -1495,7 +1495,7 @@ public class OrderSystemImpl implements OrderSystem {
 			tag = "order";
 		}
 		
-		List<Row> ordersData = new ArrayList<>(1024);
+		List<Row> ordersData = new ArrayList<>(100);
 		
 		List<String> cachedStrings;
 		if ((cachedStrings = query4Cache.get(goodid)) != null) {
@@ -1508,8 +1508,8 @@ public class OrderSystemImpl implements OrderSystem {
 		} else {
 			int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
 			String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
-			cachedStrings = new ArrayList<>(1024);
-			List<String> offsetRecords = new ArrayList<>(1024);
+			cachedStrings = new ArrayList<>(100);
+			List<String> offsetRecords = new ArrayList<>(100);
 			try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 				String line = indexFileReader.readLine();
 				
