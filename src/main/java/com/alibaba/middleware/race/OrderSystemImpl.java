@@ -1207,75 +1207,91 @@ public class OrderSystemImpl implements OrderSystem {
 
 		});
 		
-		int index = indexFor(hashWithDistrub(buyerid), CommonConstants.QUERY2_ORDER_SPLIT_SIZE);
-//		
-		String indexFile = this.query2Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
+		boolean validParameter = true;
 		
+		if (endTime <=0 || endTime < 1051722061) {
+			validParameter = false;
+		}
 		
-		// 一个用户的所有order信息 key为createtime;value为file offset length
-		List<String> buyerOrderList = new ArrayList<>(100);
-
-
-		try (ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
-			String line = indexFileReader.readLine();
+		if (endTime <= startTime) {
+			validParameter = false;
+		}
+		
+		if (startTime >= 1469984461) {
+			validParameter = false;
+		}
+		
+		if (validParameter) {
+			int index = indexFor(hashWithDistrub(buyerid), CommonConstants.QUERY2_ORDER_SPLIT_SIZE);
+	//		
+			String indexFile = this.query2Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 			
-			while (line != null) {
-				// 获得一行中以<buyerid>开头的行
-				if (line.startsWith(buyerid)) {
-					int p = line.indexOf(':');
-					String key = line.substring(0, p);
-					Long createTime = Long.parseLong(key.substring(20));
-					if (createTime >= startTime && createTime < endTime) {
-						buyerOrderList.add(line.substring(p + 1));
-					}
-					
-				}
-				line = indexFileReader.readLine();
-			}
-			if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-				System.out.println("query2 index time:" + (System.currentTimeMillis() - start));
-			}
-//				for (String s:buyerOrderList) {
-//					System.out.println(s);
-//				}
-			// 说明有这个买家的时间段记录
-			if (buyerOrderList.size() > 0) {
-//				System.out.println(buyerOrderList.size());
-				Row kvMap;
-				Map<String,PriorityQueue<String[]>> buyerOrderAccessSequence = createOrderDataAccessSequence(buyerOrderList);
-				for (Map.Entry<String, PriorityQueue<String[]>> e : buyerOrderAccessSequence.entrySet()) {
-					String file = this.orderFiles.get(Integer.parseInt(e.getKey()));
-//					System.out.println("file:"+file);
-					String[] sequence;
-					try(RandomAccessFile orderFileReader = new RandomAccessFile(file, "r")) {
-						sequence = e.getValue().poll();
-						while(sequence != null) {
-							
-							Long offset = Long.parseLong(sequence[0]);
-//							System.out.println("offset:"+offset);
-//							System.out.println("lenth:"+Integer.valueOf(sequence[1]));
-							byte[] content = new byte[Integer.valueOf(sequence[1])];
-							orderFileReader.seek(offset);
-							orderFileReader.read(content);
-							line = new String(content);
+			
+			// 一个用户的所有order信息 key为createtime;value为file offset length
+			List<String> buyerOrderList = new ArrayList<>(100);
 	
-							kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
-							buyerOrderQueue.offer(kvMap);
-							sequence = e.getValue().poll();
+	
+			try (ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
+				String line = indexFileReader.readLine();
+				
+				while (line != null) {
+					// 获得一行中以<buyerid>开头的行
+					if (line.startsWith(buyerid)) {
+						int p = line.indexOf(':');
+						String key = line.substring(0, p);
+						Long createTime = Long.parseLong(key.substring(20));
+						if (createTime >= startTime && createTime < endTime) {
+							buyerOrderList.add(line.substring(p + 1));
 						}
 						
-					} 	
+					}
+					line = indexFileReader.readLine();
 				}
-
 				if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-					System.out.println("query2 original data time:" + (System.currentTimeMillis() - start));
+					System.out.println("query2 index time:" + (System.currentTimeMillis() - start));
 				}
-			} else {
-				System.out.println("query2 can't find order:" + buyerid + "," + startTime + "," + endTime);
+	//				for (String s:buyerOrderList) {
+	//					System.out.println(s);
+	//				}
+				// 说明有这个买家的时间段记录
+				if (buyerOrderList.size() > 0) {
+	//				System.out.println(buyerOrderList.size());
+					Row kvMap;
+					Map<String,PriorityQueue<String[]>> buyerOrderAccessSequence = createOrderDataAccessSequence(buyerOrderList);
+					for (Map.Entry<String, PriorityQueue<String[]>> e : buyerOrderAccessSequence.entrySet()) {
+						String file = this.orderFiles.get(Integer.parseInt(e.getKey()));
+	//					System.out.println("file:"+file);
+						String[] sequence;
+						try(RandomAccessFile orderFileReader = new RandomAccessFile(file, "r")) {
+							sequence = e.getValue().poll();
+							while(sequence != null) {
+								
+								Long offset = Long.parseLong(sequence[0]);
+	//							System.out.println("offset:"+offset);
+	//							System.out.println("lenth:"+Integer.valueOf(sequence[1]));
+								byte[] content = new byte[Integer.valueOf(sequence[1])];
+								orderFileReader.seek(offset);
+								orderFileReader.read(content);
+								line = new String(content);
+		
+								kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
+								buyerOrderQueue.offer(kvMap);
+								sequence = e.getValue().poll();
+							}
+							
+						} 	
+					}
+	
+					if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+						System.out.println("query2 original data time:" + (System.currentTimeMillis() - start));
+					}
+				} else {
+					System.out.println("query2 can't find order:" + buyerid + "," + startTime + "," + endTime);
+				}
+	
+			} catch(IOException e) {
+				
 			}
-
-		} catch(IOException e) {
-			
 		}
 //		}
 		return new Iterator<OrderSystem.Result>() {
