@@ -276,8 +276,6 @@ public class OrderSystemImpl implements OrderSystem {
 							offSetMsg.append(offset);
 							offSetMsg.append(' ');
 							offSetMsg.append(length);
-							offSetMsg.append('\t');
-
 							
 							// 将对应index文件的行记录数++ 如果超过阈值则换行并清空
 							this.indexLineRecords[index]++;
@@ -581,25 +579,25 @@ public class OrderSystemImpl implements OrderSystem {
 //		}
 		
 		//
-		String goodid = "gd-a3ed-1beb698256ce";
-		String salerid = "wx-b269-bcf6e30107ae";
-		System.out.println("\n查询商品id为" + goodid + "，商家id为" + salerid + "的订单");
-		List<String> keys = new ArrayList<>();
-		keys.add("a_g_5814");
-//		keys.add("a_o_30709");
-		long start = System.currentTimeMillis();
-		Iterator it = os.queryOrdersBySaler(salerid, goodid, keys);
-		System.out.println("time:"+(System.currentTimeMillis()-start));
-		while (it.hasNext()) {
-			System.out.println(it.next());
-		}
-		//
+//		String goodid = "al-a63c-e1e294d6bcb1";
+//		String salerid = "tm-bad2-ec455f2bcbc0";
+//		System.out.println("\n查询商品id为" + goodid + "，商家id为" + salerid + "的订单");
+//		List<String> keys = new ArrayList<>();
+////		keys.add("a_g_5814");
+//		keys.add("buyername");
 //		long start = System.currentTimeMillis();
-//		String goodid = "aye-abd1-5362b751f6e9";
-//		String attr = "a_g_31975";
-//		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
-//		System.out.println(os.sumOrdersByGood(goodid, attr));
-//		System.out.println(System.currentTimeMillis() -start);
+//		Iterator it = os.queryOrdersBySaler(salerid, goodid, keys);
+//		System.out.println("time:"+(System.currentTimeMillis()-start));
+//		while (it.hasNext()) {
+//			System.out.println(it.next());
+//		}
+		//
+		long start = System.currentTimeMillis();
+		String goodid = "al-85bd-377adfd2bc4f";
+		String attr = "price";
+		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
+		System.out.println(os.sumOrdersByGood(goodid, attr));
+		System.out.println(System.currentTimeMillis() -start);
 //		String goodid = "good_d191eeeb-fed1-4334-9c77-3ee6d6d66aff";
 //		String attr = "app_order_33_0";
 //		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
@@ -702,9 +700,9 @@ public class OrderSystemImpl implements OrderSystem {
 	private void constructHashIndex() {
 		// 5个线程各自完成之后 该函数才能返回
 		CountDownLatch latch = new CountDownLatch(3);
-		new Thread(new HashIndexCreator("orderid",query1IndexWriters, query1LineRecords,orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
+		new Thread(new HashIndexCreator("orderid", query1IndexWriters, query1LineRecords,orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch,new String[]{"orderid"})).start();
-		new Thread(new HashIndexCreator("buyerid",query2IndexWriters, query2LineRecords, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
+		new Thread(new HashIndexCreator("buyerid", query2IndexWriters, query2LineRecords, orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch,new String[]{"buyerid","createtime"})).start();
 		new Thread(new HashIndexCreator("goodid", query3IndexWriters, query3LineRecords ,orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch, new String[]{"goodid"})).start();
@@ -902,17 +900,22 @@ public class OrderSystemImpl implements OrderSystem {
 			String indexFile = this.query1Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 			
 	//		query1Lock.lock();
-			HashMap<String,String> indexMap = null;
+//			HashMap<String,String> indexMap = null;
 			String[] indexArray = null;
 			try (ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 				// 可能index文件就没有
 				String sOrderId = String.valueOf(orderId);
 				String line = indexFileReader.readLine();
 				while (line != null) {
-					indexMap = StringUtils.createMapFromLongLine(line, CommonConstants.SPLITTER);
-					if (indexMap.containsKey(sOrderId)) {
-//						System.out.println("index:"+ line);
-						indexArray = StringUtils.getIndexInfo(indexMap.get(sOrderId));
+//					indexMap = StringUtils.createMapFromLongLine(line, CommonConstants.SPLITTER);
+//					if (indexMap.containsKey(sOrderId)) {
+////						System.out.println("index:"+ line);
+//						indexArray = StringUtils.getIndexInfo(indexMap.get(sOrderId));
+//						break;
+//					}
+					if (line.startsWith(sOrderId)) {
+						int p = line.indexOf(':');
+						indexArray = StringUtils.getIndexInfo(line.substring(p + 1));
 						break;
 					}
 					line = indexFileReader.readLine();
@@ -1005,13 +1008,18 @@ public class OrderSystemImpl implements OrderSystem {
 			int index = indexFor(hashWithDistrub(goodId), CommonConstants.OTHER_SPLIT_SIZE);
 			String goodIndexFile = this.goodsPath + File.separator + index + CommonConstants.INDEX_SUFFIX;
 			String[] indexArray = null;
-			HashMap<String,String> indexMap = null;
+//			HashMap<String,String> indexMap = null;
 			try(ExtendBufferedReader indexFileReader = IOUtils.createReader(goodIndexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 				String line = indexFileReader.readLine();
 				while (line != null) {
-					indexMap = StringUtils.createMapFromLongLine(line, CommonConstants.SPLITTER);
-					if (indexMap.containsKey(goodId)) {
-						indexArray = StringUtils.getIndexInfo(indexMap.get(goodId));
+//					indexMap = StringUtils.createMapFromLongLine(line, CommonConstants.SPLITTER);
+//					if (indexMap.containsKey(goodId)) {
+//						indexArray = StringUtils.getIndexInfo(indexMap.get(goodId));
+//						break;
+//					}
+					if (line.startsWith(goodId)) {
+						int p = line.indexOf(':');
+						indexArray = StringUtils.getIndexInfo(line.substring(p + 1));
 						break;
 					}
 					line = indexFileReader.readLine();			
@@ -1053,14 +1061,19 @@ public class OrderSystemImpl implements OrderSystem {
 		} else {
 			int index = indexFor(hashWithDistrub(buyerId), CommonConstants.OTHER_SPLIT_SIZE);
 			String buyerIndexFile = this.buyersPath + File.separator + index + CommonConstants.INDEX_SUFFIX;
-			HashMap<String,String> indexMap = null;
+//			HashMap<String,String> indexMap = null;
 			String[] indexArray = null;
 			try (ExtendBufferedReader indexFileReader = IOUtils.createReader(buyerIndexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 				String line = indexFileReader.readLine();
 				while (line != null) {
-					indexMap = StringUtils.createMapFromLongLine(line, CommonConstants.SPLITTER);
-					if (indexMap.containsKey(buyerId)) {
-						indexArray = StringUtils.getIndexInfo(indexMap.get(buyerId));
+//					indexMap = StringUtils.createMapFromLongLine(line, CommonConstants.SPLITTER);
+//					if (indexMap.containsKey(buyerId)) {
+//						indexArray = StringUtils.getIndexInfo(indexMap.get(buyerId));
+//						break;
+//					}
+					if (line.startsWith(buyerId)) {
+						int p = line.indexOf(':');
+						indexArray = StringUtils.getIndexInfo(line.substring(p + 1));
 						break;
 					}
 					line = indexFileReader.readLine();			
@@ -1208,16 +1221,25 @@ public class OrderSystemImpl implements OrderSystem {
 				
 				while (line != null) {
 					// 获得一行中以<buyerid>开头的行
-					indexMap = StringUtils.createMapFromLongLineWithPrefixKey(line, buyerid, CommonConstants.SPLITTER);
-					Long createTime;
-					for (Map.Entry<String, String> e : indexMap.entrySet()) {
-						String key = e.getKey();
-						// 由于时间测试的时候可能有负数或者不止10位数，此处使用去掉买家id的方式获得时间戳
-						createTime = Long.parseLong(key.substring(20));
-//						System.out.println(createTime);
+//					indexMap = StringUtils.createMapFromLongLineWithPrefixKey(line, buyerid, CommonConstants.SPLITTER);
+//					Long createTime;
+//					for (Map.Entry<String, String> e : indexMap.entrySet()) {
+//						String key = e.getKey();
+//						// 由于时间测试的时候可能有负数或者不止10位数，此处使用去掉买家id的方式获得时间戳
+//						createTime = Long.parseLong(key.substring(20));
+////						System.out.println(createTime);
+//						if (createTime >= startTime && createTime < endTime) {
+//							buyerOrderList.add(e.getValue());
+//						}
+//					}
+					if (line.startsWith(buyerid)) {
+						int p = line.indexOf(':');
+						String key = line.substring(0, p);
+						Long createTime = Long.parseLong(key.substring(20));
 						if (createTime >= startTime && createTime < endTime) {
-							buyerOrderList.add(e.getValue());
+							buyerOrderList.add(line.substring(p + 1));
 						}
+						
 					}
 					line = indexFileReader.readLine();
 				}
@@ -1346,7 +1368,11 @@ public class OrderSystemImpl implements OrderSystem {
 				
 				while (line != null) {
 					// 获得一行中以<goodid>开头的行
-					offsetRecords.addAll(StringUtils.createListFromLongLineWithKey(line, goodid, CommonConstants.SPLITTER));
+//					offsetRecords.addAll(StringUtils.createListFromLongLineWithKey(line, goodid, CommonConstants.SPLITTER));
+					if (line.startsWith(goodid)) {
+						int p = line.indexOf(':');
+						offsetRecords.add(line.substring(p + 1));
+					}
 					line = indexFileReader.readLine();
 				}
 				
@@ -1464,7 +1490,11 @@ public class OrderSystemImpl implements OrderSystem {
 				
 				while (line != null) {
 					// 获得一行中以<goodid>开头的行
-					offsetRecords.addAll(StringUtils.createListFromLongLineWithKey(line, goodid, CommonConstants.SPLITTER));
+//					offsetRecords.addAll(StringUtils.createListFromLongLineWithKey(line, goodid, CommonConstants.SPLITTER));
+					if (line.startsWith(goodid)) {
+						int p = line.indexOf(':');
+						offsetRecords.add(line.substring(p + 1));
+					}
 					line = indexFileReader.readLine();
 				}
 				
@@ -1587,7 +1617,11 @@ public class OrderSystemImpl implements OrderSystem {
 			
 			while (line != null) {
 				// 获得一行中以<goodid>开头的行
-				offsetRecords.addAll(StringUtils.createListFromLongLineWithKey(line, goodId, CommonConstants.SPLITTER));
+//				offsetRecords.addAll(StringUtils.createListFromLongLineWithKey(line, goodId, CommonConstants.SPLITTER));
+				if (line.startsWith(goodId)) {
+					int p = line.indexOf(':');
+					offsetRecords.add(line.substring(p + 1));
+				}
 				line = indexFileReader.readLine();
 			}
 		} catch (IOException e) {

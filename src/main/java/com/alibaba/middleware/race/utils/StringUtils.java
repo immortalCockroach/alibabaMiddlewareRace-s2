@@ -168,7 +168,7 @@ public class StringUtils {
 		int p;
 		String key;
 		String value;
-		HashMap<String, String> result = new HashMap<>(1024);
+		HashMap<String, String> result = new HashMap<>(128);
 		while (splitIndex != -1) {
 			splitted = longLine.substring(0, splitIndex);
 			longLine = longLine.substring(splitIndex + 1);
@@ -210,7 +210,7 @@ public class StringUtils {
 		splitIndex = longLine.indexOf(splitch);
 		int p;
 		String key;
-		HashMap<String, String> result = new HashMap<>(1024);
+		HashMap<String, String> result = new HashMap<>(100);
 
 		while (splitIndex != -1) {
 			splitted = longLine.substring(0, splitIndex);
@@ -248,7 +248,7 @@ public class StringUtils {
 		splitIndex = longLine.indexOf(splitch);
 		int p;
 		String key;
-		List<String> result = new ArrayList<>(1024);
+		List<String> result = new ArrayList<>(100);
 
 		while (splitIndex != -1) {
 			splitted = longLine.substring(0, splitIndex);
