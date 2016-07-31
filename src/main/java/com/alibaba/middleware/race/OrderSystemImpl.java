@@ -539,29 +539,32 @@ public class OrderSystemImpl implements OrderSystem {
 //		long endTime = 1475352842;
 //		
 //		Iterator<Result> it = os.queryOrdersByBuyer(startTime, endTime, buyerid);
-//		System.out.println("time:"+(System.currentTimeMillis() - start));
+//		
 //		System.out.println("\n查询买家ID为" + buyerid + "的一定时间范围内的订单");
 //		while (it.hasNext()) {
-//			System.out.println(it.next());
+//			it.next();
+//			//System.out.println(it.next());
 //		}
-		
+//		System.out.println("time:"+(System.currentTimeMillis() - start));
 		//
-//		String goodid = "gd-80fa-bc88216aa5be";
-//		String salerid = "almm-b250-b1880d628b9a";
-//		System.out.println("\n查询商品id为" + goodid + "，商家id为" + salerid + "的订单");
-//		long start = System.currentTimeMillis();
-//		Iterator it = os.queryOrdersBySaler(salerid, goodid, null);
-//		System.out.println(System.currentTimeMillis()-start);
-//		while (it.hasNext()) {
-//			System.out.println(it.next());
-//		}
-		//
+		String goodid = "gd-80fa-bc88216aa5be";
+		String salerid = "almm-b250-b1880d628b9a";
+		System.out.println("\n查询商品id为" + goodid + "，商家id为" + salerid + "的订单");
 		long start = System.currentTimeMillis();
-		String goodid = "dd-a27d-835565dfb080";
-		String attr = "a_b_3503";
-		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
-		System.out.println(os.sumOrdersByGood(goodid, attr));
-		System.out.println(System.currentTimeMillis() -start);
+		Iterator it = os.queryOrdersBySaler(salerid, goodid, null);
+		
+		while (it.hasNext()) {
+			it.next();
+			//System.out.println(it.next());
+		}
+		System.out.println(System.currentTimeMillis()-start);
+		//
+//		long start = System.currentTimeMillis();
+//		String goodid = "dd-a27d-835565dfb080";
+//		String attr = "a_b_3503";
+//		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
+//		System.out.println(os.sumOrdersByGood(goodid, attr));
+//		System.out.println(System.currentTimeMillis() -start);
 //		String goodid = "good_d191eeeb-fed1-4334-9c77-3ee6d6d66aff";
 //		String attr = "app_order_33_0";
 //		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
