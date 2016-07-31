@@ -1304,9 +1304,9 @@ public class OrderSystemImpl implements OrderSystem {
 
 			public Result next() {
 				if (!hasNext()) {
-					if (query2Count.get() % CommonConstants.QUERY_PRINT_COUNT ==0) {
-						System.out.println("query2 time:"+ (System.currentTimeMillis() - start));
-					}
+//					if (query2Count.get() % CommonConstants.QUERY_PRINT_COUNT ==0) {
+//						System.out.println("query2 time:"+ (System.currentTimeMillis() - start));
+//					}
 					return null;
 				}
 				Row orderData = buyerOrderQueue.poll();
@@ -1424,9 +1424,9 @@ public class OrderSystemImpl implements OrderSystem {
 
 			public Result next() {
 				if (!hasNext()) {
-					if (query3Count.get() % CommonConstants.QUERY_PRINT_COUNT ==0) {
-						System.out.println("query3 time:"+ (System.currentTimeMillis() - start));
-					}
+//					if (query3Count.get() % CommonConstants.QUERY_PRINT_COUNT ==0) {
+//						System.out.println("query3 time:"+ (System.currentTimeMillis() - start));
+//					}
 					return null;
 				}
 				Row orderData = o.poll();
