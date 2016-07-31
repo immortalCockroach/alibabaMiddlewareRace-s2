@@ -542,10 +542,10 @@ public class OrderSystemImpl implements OrderSystem {
 
 		// 用例
 //		long start = System.currentTimeMillis();
-//		long orderid = 587905148;
+//		long orderid = 609670049;
 //		System.out.println("\n查询订单号为" + orderid + "的订单");
 //		List<String> keys = new ArrayList<>();
-//		keys.add("createtime");
+//		keys.add("description");
 ////		keys.add("buyerid");
 //		System.out.println(os.queryOrder(orderid, keys));
 //		System.out.println(System.currentTimeMillis()-start);
@@ -580,22 +580,22 @@ public class OrderSystemImpl implements OrderSystem {
 //		}
 		
 		//
-		String goodid = "gd-b972-6926df8128c3";
-		String salerid = "almm-b250-b1880d628b9a";
-		System.out.println("\n查询商品id为" + goodid + "，商家id为" + salerid + "的订单");
-		long start = System.currentTimeMillis();
-		Iterator it = os.queryOrdersBySaler(salerid, goodid, null);
-		System.out.println(System.currentTimeMillis()-start);
-		while (it.hasNext()) {
-			System.out.println(it.next());
-		}
-		//
+//		String goodid = "gd-b972-6926df8128c3";
+//		String salerid = "almm-b250-b1880d628b9a";
+//		System.out.println("\n查询商品id为" + goodid + "，商家id为" + salerid + "的订单");
 //		long start = System.currentTimeMillis();
-//		String goodid = "al-85bd-377adfd2bc4f";
-//		String attr = "price";
-//		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
-//		System.out.println(os.sumOrdersByGood(goodid, attr));
-//		System.out.println(System.currentTimeMillis() -start);
+//		Iterator it = os.queryOrdersBySaler(salerid, goodid, null);
+//		System.out.println(System.currentTimeMillis()-start);
+//		while (it.hasNext()) {
+//			System.out.println(it.next());
+//		}
+		//
+		long start = System.currentTimeMillis();
+		String goodid = "dd-941e-7fc422e8afc6";
+		String attr = "a_b_31770";
+		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
+		System.out.println(os.sumOrdersByGood(goodid, attr));
+		System.out.println(System.currentTimeMillis() -start);
 //		String goodid = "good_d191eeeb-fed1-4334-9c77-3ee6d6d66aff";
 //		String attr = "app_order_33_0";
 //		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
@@ -873,8 +873,9 @@ public class OrderSystemImpl implements OrderSystem {
 				e.printStackTrace();
 			}
 		}
-		final long start = System.currentTimeMillis();;
-		if (query1Count.incrementAndGet() % CommonConstants.QUERY_PRINT_COUNT == 0) {
+		final long start = System.currentTimeMillis();
+		int count  = query1Count.incrementAndGet();
+		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
 			System.out.println("query1count:" + query1Count.get());	
 		}
 		Row query = new Row();
@@ -919,6 +920,9 @@ public class OrderSystemImpl implements OrderSystem {
 					line = indexFileReader.readLine();
 					
 				}
+				if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+					System.out.println("query1 index time:" + (System.currentTimeMillis() - start));
+				}
 				// 说明文件中没有这个orderId的信息
 				if (indexArray == null) {
 					System.out.println("query1 can't find order:");
@@ -938,7 +942,10 @@ public class OrderSystemImpl implements OrderSystem {
 					
 				} catch (IOException e) {
 					// 忽略
-				} 
+				}
+				if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+					System.out.println("query1 original data time:" + (System.currentTimeMillis() - start));
+				}
 			} catch(IOException e) {
 				
 			}
@@ -948,14 +955,15 @@ public class OrderSystemImpl implements OrderSystem {
 //		finally {
 //			query1Lock.unlock();
 //		}
-		if (query1Count.get() % CommonConstants.QUERY_PRINT_COUNT == 0) {
-			System.out.println("query1 time:" + (System.currentTimeMillis() - start));
-		}
+
 		if (orderData == null) {
 			return null;
 		}
-
-		return createResultFromOrderData(orderData, createQueryKeys(keys));
+		ResultImpl result= createResultFromOrderData(orderData, createQueryKeys(keys));
+		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+			System.out.println("query1 all time:" + (System.currentTimeMillis() - start));
+		}
+		return result;
 	}
 	
 	private void closeWriter() {
@@ -1172,7 +1180,8 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 		}
 		final long start = System.currentTimeMillis();
-		if (query2Count.incrementAndGet() % CommonConstants.QUERY_PRINT_COUNT == 0) {
+		int count = query2Count.incrementAndGet();
+		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
 			System.out.println("query2 count:" + query2Count.get());
 		}
 		final PriorityQueue<Row> buyerOrderQueue = new PriorityQueue<>(512, new Comparator<Row>() {
@@ -1242,6 +1251,9 @@ public class OrderSystemImpl implements OrderSystem {
 					}
 					line = indexFileReader.readLine();
 				}
+				if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+					System.out.println("query2 index time:" + (System.currentTimeMillis() - start));
+				}
 //				for (String s:buyerOrderList) {
 //					System.out.println(s);
 //				}
@@ -1264,6 +1276,9 @@ public class OrderSystemImpl implements OrderSystem {
 						} catch (IOException e) {
 							// 忽略
 						}
+					}
+					if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+						System.out.println("query2 original data time:" + (System.currentTimeMillis() - start));
 					}
 				} else {
 					System.out.println("query2 can't find order:");
@@ -1331,7 +1346,8 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 		}
 		final long start = System.currentTimeMillis();
-		if (query3Count.incrementAndGet() % CommonConstants.QUERY_PRINT_COUNT == 0) {
+		int count = query3Count.incrementAndGet();
+		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
 			System.out.println("query3 count:" + query3Count.get());
 		}
 		final PriorityQueue<Row> salerGoodsQueue = new PriorityQueue<>(1024, new Comparator<Row>() {
@@ -1376,6 +1392,9 @@ public class OrderSystemImpl implements OrderSystem {
 					}
 					line = indexFileReader.readLine();
 				}
+				if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+					System.out.println("query3 index time:" + (System.currentTimeMillis() - start));
+				}
 				
 				if (offsetRecords.size() > 0 ) {
 					Row kvMap;
@@ -1396,6 +1415,9 @@ public class OrderSystemImpl implements OrderSystem {
 						} catch (IOException e) {
 							// 忽略
 						} 
+					}
+					if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+						System.out.println("query3 original data time:" + (System.currentTimeMillis() - start));
 					}
 				} else {
 					System.out.println("query3 can't find order:");
@@ -1457,10 +1479,10 @@ public class OrderSystemImpl implements OrderSystem {
 				e.printStackTrace();
 			}
 		}
-		long start = System.currentTimeMillis();;
-		if (query4Count.incrementAndGet() % CommonConstants.QUERY_PRINT_COUNT == 0) {
-			System.out.println("query4 count:" + query4Count.get());
-			
+		long start = System.currentTimeMillis();
+		int count = query4Count.incrementAndGet();
+		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+			System.out.println("query4 count:" + query4Count.get());	
 		}
 		// 快速处理 减少不必要的查询的join开销
 		String tag = "all";
@@ -1500,8 +1522,12 @@ public class OrderSystemImpl implements OrderSystem {
 					}
 					line = indexFileReader.readLine();
 				}
+				if (count % CommonConstants.QUERY_PRINT_COUNT ==0) {
+					System.out.println("query4 index time:"+ (System.currentTimeMillis() - start));
+				}
 				
 				if (offsetRecords.size() > 0 ) {
+					System.out.println(offsetRecords.size());
 					Row kvMap;
 					for (String indexInfo : offsetRecords) {
 						String[] indexArray = StringUtils.getIndexInfo(indexInfo);
@@ -1519,6 +1545,9 @@ public class OrderSystemImpl implements OrderSystem {
 						} catch (IOException e) {
 							// 忽略
 						} 
+					}
+					if (count % CommonConstants.QUERY_PRINT_COUNT ==0) {
+						System.out.println("query4 original time:"+ (System.currentTimeMillis() - start));
 					}
 				} else {
 					System.out.println("query4 can't find order:");
@@ -1540,15 +1569,15 @@ public class OrderSystemImpl implements OrderSystem {
 		List<ResultImpl> allData = new ArrayList<ResultImpl>(ordersData.size());
 		
 		for (Row orderData : ordersData) {
-			// 当tag为buyer时才需要join buyer信息
+			// 当tag为buyer或者all的时才需要join buyer信息
 			Row buyerData = null;
 			if (tag.equals("buyer") || tag.equals("all")) {
 				buyerData = getBuyerRowFromOrderData(orderData);
 			}
 			allData.add(ResultImpl.createResultRow(orderData, buyerData, null, queryingKeys));
 		}
-		if (query4Count.get() % CommonConstants.QUERY_PRINT_COUNT ==0) {
-			System.out.println("query4 time:"+ (System.currentTimeMillis() - start));
+		if (count % CommonConstants.QUERY_PRINT_COUNT ==0) {
+			System.out.println("query4 all time:"+ (System.currentTimeMillis() - start));
 		}
 		// accumulate as Long
 		try {
