@@ -1211,14 +1211,10 @@ public class OrderSystemImpl implements OrderSystem {
 //		
 		String indexFile = this.query2Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 		
-		// 用于存储在cache中的map key为createtime;value为content
-//			cachedStringsMap = new HashMap<>(512,1f);
 		
 		// 一个用户的所有order信息 key为createtime;value为file offset length
 		List<String> buyerOrderList = new ArrayList<>(100);
-		
-		// 用于查找一个文件中对应的信息 key为buyer+createtime;value为filename offset length
-//			Map<String,String> indexMap = null;
+
 
 		try (ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 			String line = indexFileReader.readLine();
@@ -1323,6 +1319,7 @@ public class OrderSystemImpl implements OrderSystem {
 		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
 			System.out.println("query3 count:" + query3Count.get());
 		}
+		String tag = keys != null && keys.size() == 1 ? getKeyJoin((String)keys.toArray()[0]): "all";
 		final PriorityQueue<Row> salerGoodsQueue = new PriorityQueue<>(100, new Comparator<Row>() {
 
 			@Override
@@ -1336,6 +1333,7 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 
 		});
+		List<Row>  salerGoodsList = new ArrayList<>(100);
 		final Collection<String> queryKeys = keys;
 
 		int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
@@ -1379,7 +1377,13 @@ public class OrderSystemImpl implements OrderSystem {
 							line = new String(content);
 	
 							kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
-							salerGoodsQueue.offer(kvMap);
+							// buyer的话需要join
+							if (tag.equals("buyer") || tag.equals("all")) {
+								salerGoodsQueue.offer(kvMap);	
+							} else {
+								salerGoodsList.add(kvMap);
+							}
+							
 							sequence = e.getValue().poll();
 						}
 						
@@ -1398,39 +1402,43 @@ public class OrderSystemImpl implements OrderSystem {
 			
 		}
 
-
-		return new Iterator<OrderSystem.Result>() {
-
-			final PriorityQueue<Row> o = salerGoodsQueue;
-			// 使用orderData(任意一个都对应同一个good信息)去查找对应的goodData
-			final Row goodData = o.peek() == null ? null : getGoodRowFromOrderData(o.peek());
-			// 如果keys
-			final String tag = queryKeys != null && queryKeys.size() == 1 ? getKeyJoin((String)queryKeys.toArray()[0]): "all";
-			public boolean hasNext() {
-				return o != null && o.size() > 0;
-			}
-
-			public Result next() {
-				if (!hasNext()) {
-//					if (query3Count.get() % CommonConstants.QUERY_PRINT_COUNT ==0) {
-//						System.out.println("query3 time:"+ (System.currentTimeMillis() - start));
-//					}
-					return null;
+		if (tag.equals("buyer") || tag.equals("all")) {
+			return new Iterator<OrderSystem.Result>() {
+	
+				final PriorityQueue<Row> o = salerGoodsQueue;
+				// 使用orderData(任意一个都对应同一个good信息)去查找对应的goodData
+				final Row goodData = o.peek() == null ? null : getGoodRowFromOrderData(o.peek());
+				
+				public boolean hasNext() {
+					return o != null && o.size() > 0;
 				}
-				Row orderData = o.poll();
-				Row buyerData = null;
-				// 当时all或者buyer的时候才去join buyer
-				if (tag.equals("buyer") || tag.equals("all")) {
-//					System.out.println("join");
-					buyerData = getBuyerRowFromOrderData(orderData);
+	
+				public Result next() {
+					if (!hasNext()) {
+	//					if (query3Count.get() % CommonConstants.QUERY_PRINT_COUNT ==0) {
+	//						System.out.println("query3 time:"+ (System.currentTimeMillis() - start));
+	//					}
+						return null;
+					}
+					Row orderData = o.poll();
+	//				Row buyerData = null;
+					// 当时all或者buyer的时候才去join buyer
+	//				if (tag.equals("buyer") || tag.equals("all")) {
+	////					System.out.println("join");
+	//					buyerData = getBuyerRowFromOrderData(orderData);
+	//				}
+					// 由于此时不需要join buyer 因此为null
+					return ResultImpl.createResultRow(orderData, null, goodData, createQueryKeys(queryKeys));
 				}
-				return ResultImpl.createResultRow(orderData, buyerData, goodData, createQueryKeys(queryKeys));
-			}
-
-			public void remove() {
-				// ignore
-			}
-		};
+	
+				public void remove() {
+					// ignore
+				}
+			};
+		} else {
+			// TODO 需要join时的结构
+			return null;
+		}
 	}
 
 	public KeyValue sumOrdersByGood(String goodid, String key) {
@@ -1515,12 +1523,11 @@ public class OrderSystemImpl implements OrderSystem {
 			} else {
 				System.out.println("query4 can't find order:");
 			}
-//				query4Cache.put(goodid, cachedStrings);
+			
 		} catch (IOException e) {
 			
 		}
-//		}
-//		System.out.println(tag);
+
 		// 如果不存在对应的order 直接返回null
 		if (ordersData.size() == 0) {
 			return null;
@@ -1530,15 +1537,15 @@ public class OrderSystemImpl implements OrderSystem {
 		
 		
 		List<ResultImpl> allData = new ArrayList<ResultImpl>(ordersData.size());
-		
-		for (Row orderData : ordersData) {
-			// 当tag为buyer或者all的时才需要join buyer信息
-			Row buyerData = null;
-			if (tag.equals("buyer") || tag.equals("all")) {
-				buyerData = getBuyerRowFromOrderData(orderData);
+		if (tag.equals("buyer") || tag.equals("all")) {
+			// TODO 是buyer时的join
+		} else { // 是order的话不用join
+			for (Row orderData : ordersData) {
+				// 当tag为buyer或者all的时才需要join buyer信息
+				allData.add(ResultImpl.createResultRow(orderData, null, null, queryingKeys));
 			}
-			allData.add(ResultImpl.createResultRow(orderData, buyerData, null, queryingKeys));
 		}
+
 		if (count % CommonConstants.QUERY_PRINT_COUNT ==0) {
 			System.out.println("query4 all time:"+ (System.currentTimeMillis() - start));
 		}
