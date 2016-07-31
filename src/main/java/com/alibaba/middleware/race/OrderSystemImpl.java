@@ -1270,23 +1270,7 @@ public class OrderSystemImpl implements OrderSystem {
 						
 					} 	
 				}
-//				for (String orderString : buyerOrderList) {
-//					String[] indexArray = StringUtils.getIndexInfo(orderString);
-//					String file = this.orderFiles.get(Integer.parseInt(indexArray[0]));
-//					Long offset = Long.parseLong(indexArray[1]);
-//					byte[] content = new byte[Integer.valueOf(indexArray[2])];
-//					try (RandomAccessFile orderFileReader = new RandomAccessFile(file, "r")) {
-//						orderFileReader.seek(offset);
-//						orderFileReader.read(content);
-//						line = new String(content);
-//
-//						kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
-//						buyerOrderQueue.offer(kvMap);
-//
-//					} catch (IOException e) {
-//						// 忽略
-//					}
-//				}
+
 				if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
 					System.out.println("query2 original data time:" + (System.currentTimeMillis() - start));
 				}
@@ -1401,25 +1385,7 @@ public class OrderSystemImpl implements OrderSystem {
 						
 					} 	
 				}
-//				for (String indexInfo : offsetRecords) {
-//					String[] indexArray = StringUtils.getIndexInfo(indexInfo);
-//					String file = this.orderFiles.get(Integer.parseInt(indexArray[0]));
-//					Long offset = Long.parseLong(indexArray[1]);
-//					byte[] content = new byte[Integer.valueOf(indexArray[2])];
-//					try (RandomAccessFile orderFileReader = new RandomAccessFile(file, "r")) {
-//						orderFileReader.seek(offset);
-//						orderFileReader.read(content);
-//						line = new String(content);
-//		//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
-////							System.out.println("order:"+line);
-////							cachedStrings.add(line);
-//						kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
-//						
-//						salerGoodsQueue.offer(kvMap);
-//					} catch (IOException e) {
-//						// 忽略
-//					} 
-//				}
+
 				if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
 					System.out.println("query3 original data time:" + (System.currentTimeMillis() - start));
 				}
@@ -1431,14 +1397,7 @@ public class OrderSystemImpl implements OrderSystem {
 		} catch (IOException e) {
 			
 		}
-//		}
-//		finally {
-//			query3Lock.unlock();
-//		}
 
-//		if (start != 0) {
-//			System.out.println("query3 time:" + (System.currentTimeMillis() - start));
-//		}
 
 		return new Iterator<OrderSystem.Result>() {
 
@@ -1501,15 +1460,7 @@ public class OrderSystemImpl implements OrderSystem {
 		
 		List<Row> ordersData = new ArrayList<>(100);
 		
-//		List<String> cachedStrings;
-//		if ((cachedStrings = query4Cache.get(goodid)) != null) {
-//			for (String content : cachedStrings) {
-//				ordersData.add(StringUtils.createKVMapFromLine(content, CommonConstants.SPLITTER));
-//			}
-//			if (q4CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
-//				System.out.println("query4 cache hit:" + q4CacheHit.get());
-//			}
-//		} else {
+
 		int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
 		String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 //			cachedStrings = new ArrayList<>(100);
@@ -1557,22 +1508,7 @@ public class OrderSystemImpl implements OrderSystem {
 						
 					} 	
 				}
-//				for (String indexInfo : offsetRecords) {
-//					String[] indexArray = StringUtils.getIndexInfo(indexInfo);
-//					String file = this.orderFiles.get(Integer.parseInt(indexArray[0]));
-//					Long offset = Long.parseLong(indexArray[1]);
-//					byte[] content = new byte[Integer.valueOf(indexArray[2])];
-//					try (RandomAccessFile orderFileReader = new RandomAccessFile(file, "r")) {
-//						orderFileReader.seek(offset);
-//						orderFileReader.read(content);
-//						line = new String(content);
-//
-//						kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
-//						ordersData.add(kvMap);
-//					} catch (IOException e) {
-//						// 忽略
-//					} 
-//				}
+
 				if (count % CommonConstants.QUERY_PRINT_COUNT ==0) {
 					System.out.println("query4 original time:"+ (System.currentTimeMillis() - start));
 				}
