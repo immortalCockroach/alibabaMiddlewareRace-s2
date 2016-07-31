@@ -37,9 +37,9 @@ public class OrderSystemImpl implements OrderSystem {
 	static private String booleanTrueValue = "true";
 	static private String booleanFalseValue = "false";
 	
-	private Collection<String> orderFiles;
-	private Collection<String> goodFiles;
-	private Collection<String> buyerFiles;
+	private List<String> orderFiles;
+	private List<String> goodFiles;
+	private List<String> buyerFiles;
 	
 	private String query1Path;
 	private String query2Path;
@@ -54,7 +54,7 @@ public class OrderSystemImpl implements OrderSystem {
 	 */
 	private int[] query1LineRecords;
 	private ExtendBufferedWriter[] query1IndexWriters;
-	private SimpleLRUCache<Long, String> query1Cache;
+//	private SimpleLRUCache<Long, String> query1Cache;
 	
 	
 	private int[] query2LineRecords;
@@ -65,9 +65,9 @@ public class OrderSystemImpl implements OrderSystem {
 	
 	private int[] query3LineRecords;
 	private ExtendBufferedWriter[] query3IndexWriters;
-	private SimpleLRUCache<String, List<String>> query3Cache;
+//	private SimpleLRUCache<String, List<String>> query3Cache;
 //	private BufferedWriter[] query4Writers;
-	private SimpleLRUCache<String, List<String>> query4Cache;
+//	private SimpleLRUCache<String, List<String>> query4Cache;
 	
 	private int[] buyerLineRecords;
 	private ExtendBufferedWriter[] buyersIndexWriters;
@@ -490,13 +490,13 @@ public class OrderSystemImpl implements OrderSystem {
 //		query2Lock = new ReentrantLock();
 //		query3Lock = new ReentrantLock();
 //		query4Lock = new ReentrantLock();
-		query1Cache = new SimpleLRUCache<>(32768);
+//		query1Cache = new SimpleLRUCache<>(32768);
 		this.query1LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
 //		query2Cache = new SimpleLRUCache<>(16384);
 		this.query2LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
-		query3Cache = new SimpleLRUCache<>(16384);
+//		query3Cache = new SimpleLRUCache<>(16384);
 		this.query3LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
-		query4Cache = new SimpleLRUCache<>(16384);
+//		query4Cache = new SimpleLRUCache<>(16384);
 		
 		goodsCache = new SimpleLRUCache<>(32768);
 		this.goodLineRecords = new int[CommonConstants.OTHER_SPLIT_SIZE];
@@ -656,9 +656,9 @@ public class OrderSystemImpl implements OrderSystem {
 			System.out.println(s);
 		}
 		
-		this.orderFiles = orderFiles;
-		this.buyerFiles = buyerFiles;
-		this.goodFiles = goodFiles;
+		this.orderFiles = new ArrayList<>(orderFiles);
+		this.buyerFiles = new ArrayList<>(buyerFiles);
+		this.goodFiles = new ArrayList<>(goodFiles);
 		long start = System.currentTimeMillis();
 		constructDir(storeFolders);
 		final long dir = System.currentTimeMillis();
@@ -1367,18 +1367,18 @@ public class OrderSystemImpl implements OrderSystem {
 
 //		query3Lock.lock();
 //		System.out.println("index:" + index);
-		List<String> cachedStrings;
-		if ((cachedStrings = query3Cache.get(goodid)) != null) {
-			for (String content : cachedStrings) {
-				salerGoodsQueue.offer(StringUtils.createKVMapFromLine(content, CommonConstants.SPLITTER));
-			}
-			if (q3CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
-				System.out.println("query3 cache hit:" + q3CacheHit.get());
-			}
-		} else {
+//		List<String> cachedStrings;
+//		if ((cachedStrings = query3Cache.get(goodid)) != null) {
+//			for (String content : cachedStrings) {
+//				salerGoodsQueue.offer(StringUtils.createKVMapFromLine(content, CommonConstants.SPLITTER));
+//			}
+//			if (q3CacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
+//				System.out.println("query3 cache hit:" + q3CacheHit.get());
+//			}
+//		} else {
 			int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
 			String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
-			cachedStrings = new ArrayList<>(100);
+//			cachedStrings = new ArrayList<>(100);
 			List<String> offsetRecords = new ArrayList<>(100);
 			try (ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 				String line = indexFileReader.readLine();
@@ -1408,7 +1408,7 @@ public class OrderSystemImpl implements OrderSystem {
 							line = new String(content);
 			//				System.out.println(new String(line.getBytes("ISO-8859-1"), "UTF-8"));
 //							System.out.println("order:"+line);
-							cachedStrings.add(line);
+//							cachedStrings.add(line);
 							kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
 							
 							salerGoodsQueue.offer(kvMap);
@@ -1423,11 +1423,11 @@ public class OrderSystemImpl implements OrderSystem {
 					System.out.println("query3 can't find order:");
 				}
 				// 如果无记录，也放入缓存，下次直接返回empty set
-				query3Cache.put(goodid, cachedStrings);
+//				query3Cache.put(goodid, cachedStrings);
 			} catch (IOException e) {
 				
 			}
-		}
+//		}
 //		finally {
 //			query3Lock.unlock();
 //		}
