@@ -296,11 +296,12 @@ public class OrderSystemImpl implements OrderSystem {
 						if (readLines == 0) {
 							break;
 						}
-						while (readLines > 0) {
+						int i = 0;
+						while (i < readLines) {
 							
-							offsetBw = offSetwriters[bufferArray[readLines - 1].getIndex()];
-							offsetBw.write(bufferArray[readLines - 1].getLine());
-							readLines--;
+							offsetBw = offSetwriters[bufferArray[i].getIndex()];
+							offsetBw.write(bufferArray[i].getLine());
+							i++;
 						}
 						
 					}				
@@ -579,25 +580,22 @@ public class OrderSystemImpl implements OrderSystem {
 //		}
 		
 		//
-//		String goodid = "al-a63c-e1e294d6bcb1";
-//		String salerid = "tm-bad2-ec455f2bcbc0";
-//		System.out.println("\n查询商品id为" + goodid + "，商家id为" + salerid + "的订单");
-//		List<String> keys = new ArrayList<>();
-////		keys.add("a_g_5814");
-//		keys.add("buyername");
-//		long start = System.currentTimeMillis();
-//		Iterator it = os.queryOrdersBySaler(salerid, goodid, keys);
-//		System.out.println("time:"+(System.currentTimeMillis()-start));
-//		while (it.hasNext()) {
-//			System.out.println(it.next());
-//		}
-		//
+		String goodid = "gd-b972-6926df8128c3";
+		String salerid = "almm-b250-b1880d628b9a";
+		System.out.println("\n查询商品id为" + goodid + "，商家id为" + salerid + "的订单");
 		long start = System.currentTimeMillis();
-		String goodid = "al-85bd-377adfd2bc4f";
-		String attr = "price";
-		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
-		System.out.println(os.sumOrdersByGood(goodid, attr));
-		System.out.println(System.currentTimeMillis() -start);
+		Iterator it = os.queryOrdersBySaler(salerid, goodid, null);
+		System.out.println(System.currentTimeMillis()-start);
+		while (it.hasNext()) {
+			System.out.println(it.next());
+		}
+		//
+//		long start = System.currentTimeMillis();
+//		String goodid = "al-85bd-377adfd2bc4f";
+//		String attr = "price";
+//		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
+//		System.out.println(os.sumOrdersByGood(goodid, attr));
+//		System.out.println(System.currentTimeMillis() -start);
 //		String goodid = "good_d191eeeb-fed1-4334-9c77-3ee6d6d66aff";
 //		String attr = "app_order_33_0";
 //		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
@@ -923,6 +921,7 @@ public class OrderSystemImpl implements OrderSystem {
 				}
 				// 说明文件中没有这个orderId的信息
 				if (indexArray == null) {
+					System.out.println("query1 can't find order:");
 					return null;
 				}
 				
@@ -1266,6 +1265,8 @@ public class OrderSystemImpl implements OrderSystem {
 							// 忽略
 						}
 					}
+				} else {
+					System.out.println("query2 can't find order:");
 				}
 //					for (Map.Entry<Long, String> indexInfoEntry : buyerOrderMap.entrySet()) {
 //						String[] indexArray = StringUtils.getIndexInfo(indexInfoEntry.getValue());
@@ -1396,6 +1397,8 @@ public class OrderSystemImpl implements OrderSystem {
 							// 忽略
 						} 
 					}
+				} else {
+					System.out.println("query3 can't find order:");
 				}
 				// 如果无记录，也放入缓存，下次直接返回empty set
 				query3Cache.put(goodid, cachedStrings);
@@ -1517,6 +1520,8 @@ public class OrderSystemImpl implements OrderSystem {
 							// 忽略
 						} 
 					}
+				} else {
+					System.out.println("query4 can't find order:");
 				}
 				query4Cache.put(goodid, cachedStrings);
 			} catch (IOException e) {
