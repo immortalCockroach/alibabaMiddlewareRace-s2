@@ -523,35 +523,35 @@ public class OrderSystemImpl implements OrderSystem {
 //			System.out.println(1111 + " order not exist");
 //		}
 //		System.out.println(System.currentTimeMillis() - start);
-//		long start = System.currentTimeMillis();
-//		String buyerid = "tp-b0a2-fd0ca6720971";
-//		long startTime = 1467791748;
-//		long endTime = 1481816836;
+		long start = System.currentTimeMillis();
+		String buyerid = "tp-b0a2-fd0ca6720971";
+		long startTime = 1467791748;
+		long endTime = 1481816836;
 //		
-//		Iterator<Result> it = os.queryOrdersByBuyer(startTime, endTime, buyerid);
-//		
-//		System.out.println("\n查询买家ID为" + buyerid + "的一定时间范围内的订单");
-//		while (it.hasNext()) {
-//			it.next();
-////			System.out.println(it.next());
-//		}
-//		System.out.println("time:"+(System.currentTimeMillis() - start));
+		Iterator<Result> it = os.queryOrdersByBuyer(startTime, endTime, buyerid);
+		
+		System.out.println("\n查询买家ID为" + buyerid + "的一定时间范围内的订单");
+		while (it.hasNext()) {
+			it.next();
+//			System.out.println(it.next());
+		}
+		System.out.println("time:"+(System.currentTimeMillis() - start));
 //		//
 
 
-		String goodid = "aye-8837-3aca358bfad3";
-		String salerid = "almm-b250-b1880d628b9a";
-		System.out.println("\n查询商品id为" + goodid + "，商家id为" + salerid + "的订单");
-		long start = System.currentTimeMillis();
-		List<String> keys = new ArrayList<>();
-		keys.add("address");
-		Iterator it = os.queryOrdersBySaler(salerid, goodid, keys);
+//		String goodid = "aye-8837-3aca358bfad3";
+//		String salerid = "almm-b250-b1880d628b9a";
+//		System.out.println("\n查询商品id为" + goodid + "，商家id为" + salerid + "的订单");
+//		long start = System.currentTimeMillis();
+//		List<String> keys = new ArrayList<>();
+//		keys.add("address");
+//		Iterator it = os.queryOrdersBySaler(salerid, goodid, keys);
+////		System.out.println(System.currentTimeMillis()-start);
+//		while (it.hasNext()) {
+////			System.out.println(it.next());
+//			it.next();
+//		}
 //		System.out.println(System.currentTimeMillis()-start);
-		while (it.hasNext()) {
-//			System.out.println(it.next());
-			it.next();
-		}
-		System.out.println(System.currentTimeMillis()-start);
 		//
 //		long start = System.currentTimeMillis();
 //		String goodid = "dd-a27d-835565dfb080";
@@ -1194,19 +1194,19 @@ public class OrderSystemImpl implements OrderSystem {
 			System.out.println("query2 count:" + query2Count.get());
 		}
 		
-		final PriorityQueue<Row> buyerOrderQueue = new PriorityQueue<>(100, new Comparator<Row>() {
-
-			@Override
-			public int compare(Row o1, Row o2) {
-				// TODO Auto-generated method stub
-				long o2Time;
-				long o1Time;
-				o1Time = o1.get("createtime").longValue;
-				o2Time = o2.get("createtime").longValue;
-				return o2Time - o1Time > 0 ? 1 : -1;
-			}
-
-		});
+//		final PriorityQueue<Row> buyerOrderQueue = new PriorityQueue<>(100, new Comparator<Row>() {
+//
+//			@Override
+//			public int compare(Row o1, Row o2) {
+//				// TODO Auto-generated method stub
+//				long o2Time;
+//				long o1Time;
+//				o1Time = o1.get("createtime").longValue;
+//				o2Time = o2.get("createtime").longValue;
+//				return o2Time - o1Time > 0 ? 1 : -1;
+//			}
+//
+//		});
 		List<Row> buyerOrderResultList = new ArrayList<>(100);
 		
 		boolean validParameter = true;
@@ -1268,8 +1268,8 @@ public class OrderSystemImpl implements OrderSystem {
 								line = new String(content);
 		
 								kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
-//								buyerOrderResultList.add(kvMap);
-								buyerOrderQueue.offer(kvMap);
+								buyerOrderResultList.add(kvMap);
+//								buyerOrderQueue.offer(kvMap);
 								sequence = e.getValue().poll();
 							}
 							
@@ -1288,47 +1288,50 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 		}
 		// query2需要join good信息
-//		Row buyerRow = buyerOrderResultList.size() == 0 ? null : getBuyerRowFromOrderData(buyerOrderResultList.get(0));
-//		Comparator<Row> comparator = new Comparator<Row>() {
+		Row buyerRow = buyerOrderResultList.size() == 0 ? null : getBuyerRowFromOrderData(buyerOrderResultList.get(0));
+		Comparator<Row> comparator = new Comparator<Row>() {
+
+			@Override
+			public int compare(Row o1, Row o2) {
+				// TODO Auto-generated method stub
+				long o2Time;
+				long o1Time;
+				o1Time = o1.get("createtime").longValue;
+				o2Time = o2.get("createtime").longValue;
+				return o2Time - o1Time > 0 ? 1 : -1;
+			}
+
+		};
+		JoinOne joinResult = new JoinOne(buyerOrderResultList, buyerRow, comparator, "goodid", null);
+		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+			System.out.println("query2 join time:" + (System.currentTimeMillis() - start));
+		}
+		return joinResult;
+//		return new Iterator<OrderSystem.Result>() {
 //
-//			@Override
-//			public int compare(Row o1, Row o2) {
-//				// TODO Auto-generated method stub
-//				long o2Time;
-//				long o1Time;
-//				o1Time = o1.get("createtime").longValue;
-//				o2Time = o2.get("createtime").longValue;
-//				return o2Time - o1Time > 0 ? 1 : -1;
+//			PriorityQueue<Row> o = buyerOrderQueue;
+//			Row buyerData = o.peek() == null ? null : getBuyerRowFromOrderData(o.peek());
+//
+//			public boolean hasNext() {
+//				return o != null && o.size() > 0;
 //			}
 //
+//			public Result next() {
+//				if (!hasNext()) {
+////					if (query2Count.get() % CommonConstants.QUERY_PRINT_COUNT ==0) {
+////						System.out.println("query2 time:"+ (System.currentTimeMillis() - start));
+////					}
+//					return null;
+//				}
+//				Row orderData = buyerOrderQueue.poll();
+//				Row goodData = getGoodRowFromOrderData(orderData);
+//				return ResultImpl.createResultRow(orderData, buyerData, goodData, null);
+//			}
+//
+//			public void remove() {
+//
+//			}
 //		};
-//		JoinOne joinResult = new JoinOne(buyerOrderResultList, buyerRow, comparator, "goodid", null);
-//		return joinResult;
-		return new Iterator<OrderSystem.Result>() {
-
-			PriorityQueue<Row> o = buyerOrderQueue;
-			Row buyerData = o.peek() == null ? null : getBuyerRowFromOrderData(o.peek());
-
-			public boolean hasNext() {
-				return o != null && o.size() > 0;
-			}
-
-			public Result next() {
-				if (!hasNext()) {
-//					if (query2Count.get() % CommonConstants.QUERY_PRINT_COUNT ==0) {
-//						System.out.println("query2 time:"+ (System.currentTimeMillis() - start));
-//					}
-					return null;
-				}
-				Row orderData = buyerOrderQueue.poll();
-				Row goodData = getGoodRowFromOrderData(orderData);
-				return ResultImpl.createResultRow(orderData, buyerData, goodData, null);
-			}
-
-			public void remove() {
-
-			}
-		};
 	}
 	/**
 	 * 用于0或者1次join时的简化操作
@@ -1352,15 +1355,15 @@ public class OrderSystemImpl implements OrderSystem {
 			this.comparator = comparator;
 			this.joinId = joinId;
 			this.queryKeys = queryKeys;
-			this.orderQueue = new PriorityQueue<>(512, comparator);
+			this.orderQueue = new PriorityQueue<>(orderRows.size(), comparator);
 			for (Row orderRow : orderRows) {
 				orderQueue.offer(orderRow);
 			}
 			// 读取不同的good(buyer)Id 查找Row(不论是从cache还是通过memoryMap的索引去原始文件查找)组成一个map供之后join
 			// 当orderRow为空或者query3最后得到的tag为order或者good的时候 不需要查询join
 			if (joinId != null && orderRows.size() > 0) {
-				joinDataIndexSet = new HashSet<>(256);
-				joinDataMap = new HashMap<>(256);
+				joinDataIndexSet = new HashSet<>(orderRows.size());
+				joinDataMap = new HashMap<>(orderRows.size());
 				getUniqueDataIndex();
 				// 当有没有现成的Row的时候
 				if(joinDataIndexSet.size() > 0) {
@@ -1592,6 +1595,9 @@ public class OrderSystemImpl implements OrderSystem {
 //		 查询3可能不需要join的buyer
 		String joinTable = tag.equals("buyer") || tag.equals("all") ? "buyerid" : null;
 		JoinOne joinResult = new JoinOne(salerGoodsList, goodRow, comparator, joinTable, createQueryKeys(queryKeys));
+		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+			System.out.println("query3 join time:" + (System.currentTimeMillis() - start));
+		}
 		return joinResult;
 //		return new Iterator<OrderSystem.Result>() {
 //
