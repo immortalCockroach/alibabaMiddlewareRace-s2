@@ -302,63 +302,12 @@ public class OrderSystemImpl implements OrderSystem {
 						while (i < readLines) {
 							
 							offsetBw = offSetwriters[bufferArray[i].getIndex()];
-//							if(offsetBw!= null) {
-//								System.out.println(offsetBw);
-//							}
-//							if(bufferArray!= null)
-//								System.out.println(bufferArray[i]);
 							offsetBw.write(bufferArray[i].getLine());
 							i++;
 						}
 						
 					}	
 					fileIndex++;
-//					String line = reader.readLine();
-//					while (line != null) {
-//						StringBuilder offSetMsg = new StringBuilder();
-//						kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
-//						// windows测试 提交的时候修改为1
-//						length = line.getBytes().length;
-//						
-//						// orderId一定存在且为long
-//						orderKV = kvMap.getKV(hashId);
-//						index = indexFor(
-//								hashWithDistrub(hashId.equals("orderid") ? orderKV.longValue : orderKV.rawValue),
-//								BUCKET_SIZE);
-//						// 获得对应的writer
-//
-//						offsetBw = offSetwriters[index];
-//						
-//						// index file的写入 具体为identifier:file offset length
-//						// 多个identifier采用拼接
-//						for(String e : identities) {
-//							offSetMsg.append(kvMap.getKV(e).rawValue) ;
-//						}
-//						offSetMsg.append(':');
-//						offSetMsg.append(orderFile);
-//						offSetMsg.append(' ');
-//						offSetMsg.append(offset);
-//						offSetMsg.append(' ');
-//						offSetMsg.append(length);
-//						offSetMsg.append('\t');
-//						// 写入对应的索引文件 此处不换行
-//						offsetBw.write(offSetMsg.toString());
-//						
-//						// 将对应index文件的行记录数++ 如果超过阈值则换行并清空
-//						this.indexLineRecords[index]++;
-//						if ( this.indexLineRecords[index] == CommonConstants.INDEX_LINE_RECORDS) {
-//							offsetBw.newLine();
-//							this.indexLineRecords[index] = 0;
-//						}
-//						// 此处表示下一个offSet的开始 所以放到后面(提交的时候修改为1 因为linux和unix的换行符为\n)
-//						offset += (length + 1);
-//						
-//						buildCount++;
-//						if ((buildCount & mod) == 0) {
-//							System.out.println(hashId + " construct:" + buildCount);
-//						}
-//						line = reader.readLine();
-//					}
 					
 				} catch (IOException e) {
 					// 忽略
@@ -554,13 +503,26 @@ public class OrderSystemImpl implements OrderSystem {
 		//
 
 
-		//
+		String goodid = "gd-80fa-bc88216aa5be";
+		String salerid = "almm-b250-b1880d628b9a";
+		System.out.println("\n查询商品id为" + goodid + "，商家id为" + salerid + "的订单");
 		long start = System.currentTimeMillis();
-		String goodid = "dd-a27d-835565dfb080";
-		String attr = "a_b_3503";
-		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
-		System.out.println(os.sumOrdersByGood(goodid, attr));
-		System.out.println(System.currentTimeMillis() -start);
+		List<String> keys = new ArrayList<>();
+		keys.add("address");
+		Iterator it = os.queryOrdersBySaler(salerid, goodid, keys);
+//		System.out.println(System.currentTimeMillis()-start);
+		while (it.hasNext()) {
+//			System.out.println(it.next());
+			it.next();
+		}
+		System.out.println(System.currentTimeMillis()-start);
+		//
+//		long start = System.currentTimeMillis();
+//		String goodid = "dd-a27d-835565dfb080";
+//		String attr = "a_b_3503";
+//		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
+//		System.out.println(os.sumOrdersByGood(goodid, attr));
+//		System.out.println(System.currentTimeMillis() -start);
 //		String goodid = "good_d191eeeb-fed1-4334-9c77-3ee6d6d66aff";
 //		String attr = "app_order_33_0";
 //		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
@@ -1200,17 +1162,14 @@ public class OrderSystemImpl implements OrderSystem {
 		
 		boolean validParameter = true;
 		
-		if (endTime <=0 || endTime < 1051722061) {
+		if (endTime <=0) {
 			validParameter = false;
 		}
 		
 		if (endTime <= startTime) {
 			validParameter = false;
 		}
-		
-		if (startTime >= 1469984461) {
-			validParameter = false;
-		}
+
 		
 		if (validParameter) {
 			int index = indexFor(hashWithDistrub(buyerid), CommonConstants.QUERY2_ORDER_SPLIT_SIZE);
@@ -1364,7 +1323,7 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 			
 			if (offsetRecords.size() > 0 ) {
-//				System.out.println(offsetRecords.size());
+				System.out.println(offsetRecords.size());
 				Row kvMap;
 				Map<String,PriorityQueue<String[]>> buyerOrderAccessSequence = createOrderDataAccessSequence(offsetRecords);
 				for (Map.Entry<String, PriorityQueue<String[]>> e : buyerOrderAccessSequence.entrySet()) {
