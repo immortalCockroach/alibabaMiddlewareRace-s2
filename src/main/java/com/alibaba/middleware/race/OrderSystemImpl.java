@@ -1355,15 +1355,15 @@ public class OrderSystemImpl implements OrderSystem {
 			this.comparator = comparator;
 			this.joinId = joinId;
 			this.queryKeys = queryKeys;
-			this.orderQueue = new PriorityQueue<>(orderRows.size(), comparator);
+			this.orderQueue = new PriorityQueue<>(512, comparator);
 			for (Row orderRow : orderRows) {
 				orderQueue.offer(orderRow);
 			}
 			// 读取不同的good(buyer)Id 查找Row(不论是从cache还是通过memoryMap的索引去原始文件查找)组成一个map供之后join
 			// 当orderRow为空或者query3最后得到的tag为order或者good的时候 不需要查询join
 			if (joinId != null && orderRows.size() > 0) {
-				joinDataIndexSet = new HashSet<>(orderRows.size());
-				joinDataMap = new HashMap<>(orderRows.size());
+				joinDataIndexSet = new HashSet<>(512);
+				joinDataMap = new HashMap<>(512);
 				getUniqueDataIndex();
 				// 当有没有现成的Row的时候
 				if(joinDataIndexSet.size() > 0) {
