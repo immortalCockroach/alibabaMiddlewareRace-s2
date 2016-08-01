@@ -527,7 +527,7 @@ public class OrderSystemImpl implements OrderSystem {
 //		String buyerid = "tp-b0a2-fd0ca6720971";
 //		long startTime = 1467791748;
 //		long endTime = 1481816836;
-////		
+//////		
 //		Iterator<Result> it = os.queryOrdersByBuyer(startTime, endTime, buyerid);
 //		
 //		System.out.println("\n查询买家ID为" + buyerid + "的一定时间范围内的订单");
@@ -1216,6 +1216,14 @@ public class OrderSystemImpl implements OrderSystem {
 		}
 		
 		if (endTime <= startTime) {
+			validParameter = false;
+		}
+		
+		if (startTime > 11668409867L) {
+			validParameter = false;
+		}
+		
+		if (endTime <= 1468385553L ) {
 			validParameter = false;
 		}
 	

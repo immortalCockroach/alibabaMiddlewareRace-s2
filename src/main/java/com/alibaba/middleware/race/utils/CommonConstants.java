@@ -19,7 +19,7 @@ public class CommonConstants {
 	
 	public static final int QUERY2_ORDER_SPLIT_SIZE = 4096;
 	
-	public static final int QUERY3_ORDER_SPLIT_SIZE = 2048;
+	public static final int QUERY3_ORDER_SPLIT_SIZE = 4096;
 	
 	// 买家 商品文件切割份数
 	public static final int OTHER_SPLIT_SIZE = 1024;
