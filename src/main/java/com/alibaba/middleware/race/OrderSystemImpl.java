@@ -523,19 +523,19 @@ public class OrderSystemImpl implements OrderSystem {
 //			System.out.println(1111 + " order not exist");
 //		}
 //		System.out.println(System.currentTimeMillis() - start);
-		long start = System.currentTimeMillis();
-		String buyerid = "tp-b0a2-fd0ca6720971";
-		long startTime = 1467791748;
-		long endTime = 1481816836;
+//		long start = System.currentTimeMillis();
+//		String buyerid = "tp-b0a2-fd0ca6720971";
+//		long startTime = 1467791748;
+//		long endTime = 1481816836;
+////		
+//		Iterator<Result> it = os.queryOrdersByBuyer(startTime, endTime, buyerid);
 //		
-		Iterator<Result> it = os.queryOrdersByBuyer(startTime, endTime, buyerid);
-		
-		System.out.println("\n查询买家ID为" + buyerid + "的一定时间范围内的订单");
-		while (it.hasNext()) {
-			it.next();
+//		System.out.println("\n查询买家ID为" + buyerid + "的一定时间范围内的订单");
+//		while (it.hasNext()) {
+////			it.next();
 //			System.out.println(it.next());
-		}
-		System.out.println("time:"+(System.currentTimeMillis() - start));
+//		}
+//		System.out.println("time:"+(System.currentTimeMillis() - start));
 //		//
 
 
@@ -548,8 +548,8 @@ public class OrderSystemImpl implements OrderSystem {
 //		Iterator it = os.queryOrdersBySaler(salerid, goodid, keys);
 ////		System.out.println(System.currentTimeMillis()-start);
 //		while (it.hasNext()) {
-////			System.out.println(it.next());
-//			it.next();
+//			System.out.println(it.next());
+////			it.next();
 //		}
 //		System.out.println(System.currentTimeMillis()-start);
 		//
@@ -1244,7 +1244,7 @@ public class OrderSystemImpl implements OrderSystem {
 					line = indexFileReader.readLine();
 				}
 				if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-					System.out.println("query2 index time:" + (System.currentTimeMillis() - start));
+					System.out.println("query2 index time:" + (System.currentTimeMillis() - start) + "size:" + buyerOrderList.size());
 				}
 				
 				if (buyerOrderList.size() > 0) {
@@ -1277,7 +1277,7 @@ public class OrderSystemImpl implements OrderSystem {
 					}
 	
 					if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-						System.out.println("query2 original data time:" + (System.currentTimeMillis() - start));
+						System.out.println("query2 original data time:" + (System.currentTimeMillis() - start) + "size:" + buyerOrderAccessSequence.size());
 					}
 				} else {
 					System.out.println("query2 can't find order:" + buyerid + "," + startTime + "," + endTime);
@@ -1533,7 +1533,7 @@ public class OrderSystemImpl implements OrderSystem {
 				line = indexFileReader.readLine();
 			}
 			if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-				System.out.println("query3 index time:" + (System.currentTimeMillis() - start));
+				System.out.println("query3 index time:" + (System.currentTimeMillis() - start) + "size:" +offsetRecords.size());
 			}
 			
 			if (offsetRecords.size() > 0 ) {
@@ -1567,7 +1567,7 @@ public class OrderSystemImpl implements OrderSystem {
 				}
 
 				if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-					System.out.println("query3 original data time:" + (System.currentTimeMillis() - start));
+					System.out.println("query3 original data time:" + (System.currentTimeMillis() - start) + "size:" + buyerOrderAccessSequence.size());
 				}
 			} else {
 				System.out.println("query3 can't find order:");
@@ -1676,7 +1676,7 @@ public class OrderSystemImpl implements OrderSystem {
 				line = indexFileReader.readLine();
 			}
 			if (count % CommonConstants.QUERY_PRINT_COUNT ==0) {
-				System.out.println("query4 index time:"+ (System.currentTimeMillis() - start));
+				System.out.println("query4 index time:"+ (System.currentTimeMillis() - start) + "size:" + offsetRecords.size());
 			}
 			
 			if (offsetRecords.size() > 0 ) {
@@ -1707,7 +1707,7 @@ public class OrderSystemImpl implements OrderSystem {
 				}
 
 				if (count % CommonConstants.QUERY_PRINT_COUNT ==0) {
-					System.out.println("query4 original time:"+ (System.currentTimeMillis() - start));
+					System.out.println("query4 original time:"+ (System.currentTimeMillis() - start) + "size:" + buyerOrderAccessSequence.size());
 				}
 			} else {
 				System.out.println("query4 can't find order:");
