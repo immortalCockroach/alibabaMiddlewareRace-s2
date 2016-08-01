@@ -15,12 +15,12 @@ public class CommonConstants {
 	public static final String NEW_LINE = System.getProperty("line.separator");
 	
 	// order文件被切割的份数 保持2^n
-	public static final int ORDER_SPLIT_SIZE = 4;
+	public static final int ORDER_SPLIT_SIZE = 2048;
 	
-	public static final int QUERY2_ORDER_SPLIT_SIZE = 8;
+	public static final int QUERY2_ORDER_SPLIT_SIZE = 4096;
 	
 	// 买家 商品文件切割份数
-	public static final int OTHER_SPLIT_SIZE = 1;
+	public static final int OTHER_SPLIT_SIZE = 1024;
 	
 	// 索引文件的每行record数目 整行的大小控制在200byte左右 此时读取和split性能较好，预估索引文件每行的单个记录在50bytes左右
 	public static final int INDEX_LINE_RECORDS = 1;
@@ -38,7 +38,7 @@ public class CommonConstants {
 	
 	public static final char SPLITTER = '\t';
 	
-	public static final int QUERY_PRINT_COUNT = 1;
+	public static final int QUERY_PRINT_COUNT = 256;
 	
 	public static final int CACHE_PRINT_COUNT = 256;
 	

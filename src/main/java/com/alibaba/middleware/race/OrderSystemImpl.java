@@ -235,7 +235,7 @@ public class OrderSystemImpl implements OrderSystem {
 			BLOCK_SIZE = blockSize;
 			this.identities = identities;
 			this.buildCount = 0;
-			this.mod = 2048;
+			this.mod = 524288;
 			this.bufferArray = new IndexBuffer[CommonConstants.INDEX_BUFFER_SIZE];
 			this.inMemory = inMemory;
 		}
@@ -298,16 +298,16 @@ public class OrderSystemImpl implements OrderSystem {
 								offSetMsg.append(offset);
 								offSetMsg.append(' ');
 								offSetMsg.append(length);
-								this.bufferArray[readLines] = new IndexBuffer(0, offSetMsg.toString());
+								this.bufferArray[readLines] = new IndexBuffer(orderKV.rawValue, offSetMsg.toString());
 							}
 							
 							offset += (length + 1);
 							
 							
 							buildCount++;
-//							if ((buildCount & mod) == 0 && inMemory) {
-//								System.out.println(hashId + "construct:" + buildCount);
-//							}
+							if ((buildCount & (mod - 1)) == 0) {
+								System.out.println(hashId + "construct:" + buildCount);
+							}
 						}
 						
 						if (readLines == 0) {
@@ -317,21 +317,16 @@ public class OrderSystemImpl implements OrderSystem {
 						if (!this.inMemory) {
 							while (i < readLines) {
 								
-								offsetBw = offSetwriters[bufferArray[i].getIndex()];
+								offsetBw = offSetwriters[(int)(bufferArray[i].getIndex())];
 								offsetBw.write(bufferArray[i].getLine());
 								i++;
 							}
 						} else {
 							while (i < readLines) {
-								if (this.hashId.equals("goodid")) {
-									if(orderKV.rawValue.equals("gd-84d0-f068c4ad340a")) {
-										System.out.println(kvMap);
-									}
-//									System.out.println( bufferArray[i].getLine());
-									goodMemoryIndexMap.put(orderKV.rawValue, bufferArray[i].getLine());
-								} else {
-//									System.out.println( bufferArray[i].getLine());
-									buyerMemoryIndexMap.put(orderKV.rawValue, bufferArray[i].getLine());
+								if (this.hashId.equals("goodid")) {								
+									goodMemoryIndexMap.put((String)bufferArray[i].getIndex(), bufferArray[i].getLine());
+								} else {								
+									buyerMemoryIndexMap.put((String)bufferArray[i].getIndex(), bufferArray[i].getLine());
 								}
 								i++;
 							}
@@ -455,13 +450,13 @@ public class OrderSystemImpl implements OrderSystem {
 		if (!buyerGoodInMemory) {
 			this.goodLineRecords = new int[CommonConstants.OTHER_SPLIT_SIZE];
 		} else {
-			this.goodMemoryIndexMap = new HashMap<>(4096, 1f);
+			this.goodMemoryIndexMap = new HashMap<>(4194304, 1f);
 		}
 		buyersCache = new SimpleLRUCache<>(65536);
 		if (!buyerGoodInMemory) {
 			this.buyerLineRecords = new int[CommonConstants.OTHER_SPLIT_SIZE];
 		}  else {
-			this.buyerMemoryIndexMap = new HashMap<>(8192, 1f);
+			this.buyerMemoryIndexMap = new HashMap<>(8388608, 1f);
 		}
 		isConstructed = false;
 		
@@ -502,14 +497,14 @@ public class OrderSystemImpl implements OrderSystem {
 		os.construct(orderFiles, buyerFiles, goodFiles, storeFolders);
 
 		// 用例
-		long start = System.currentTimeMillis();
-		long orderid = 609670049;
-		System.out.println("\n查询订单号为" + orderid + "的订单");
-		List<String> keys = new ArrayList<>();
-		keys.add("description");
-//		keys.add("buyerid");
-		System.out.println(os.queryOrder(orderid, keys));
-		System.out.println(System.currentTimeMillis()-start);
+//		long start = System.currentTimeMillis();
+//		long orderid = 609670049;
+//		System.out.println("\n查询订单号为" + orderid + "的订单");
+//		List<String> keys = new ArrayList<>();
+//		keys.add("description");
+////		keys.add("buyerid");
+//		System.out.println(os.queryOrder(orderid, keys));
+//		System.out.println(System.currentTimeMillis()-start);
 //		System.out.println("\n查询订单号为" + orderid + "的订单，查询的keys为空，返回订单，但没有kv数据");
 //		System.out.println(os.queryOrder(orderid, new ArrayList<String>()));
 
@@ -529,34 +524,34 @@ public class OrderSystemImpl implements OrderSystem {
 //		}
 //		System.out.println(System.currentTimeMillis() - start);
 //		long start = System.currentTimeMillis();
-//		String buyerid = "ap-ab47-6996ba1fbc26";
-//		long startTime = 1463859812;
-//		long endTime = 1475352842;
+//		String buyerid = "wx-a0e0-6bda77db73ca";
+//		long startTime = 1462018520;
+//		long endTime = 1473999229;
 //		
 //		Iterator<Result> it = os.queryOrdersByBuyer(startTime, endTime, buyerid);
 //		
 //		System.out.println("\n查询买家ID为" + buyerid + "的一定时间范围内的订单");
 //		while (it.hasNext()) {
 //			it.next();
-//			//System.out.println(it.next());
+////			System.out.println(it.next());
 //		}
 //		System.out.println("time:"+(System.currentTimeMillis() - start));
 		//
 
 
-//		String goodid = "gd-80fa-bc88216aa5be";
-//		String salerid = "almm-b250-b1880d628b9a";
-//		System.out.println("\n查询商品id为" + goodid + "，商家id为" + salerid + "的订单");
-//		long start = System.currentTimeMillis();
-//		List<String> keys = new ArrayList<>();
-//		keys.add("address");
-//		Iterator it = os.queryOrdersBySaler(salerid, goodid, keys);
-////		System.out.println(System.currentTimeMillis()-start);
-//		while (it.hasNext()) {
-////			System.out.println(it.next());
-//			it.next();
-//		}
+		String goodid = "gd-80fa-bc88216aa5be";
+		String salerid = "almm-b250-b1880d628b9a";
+		System.out.println("\n查询商品id为" + goodid + "，商家id为" + salerid + "的订单");
+		long start = System.currentTimeMillis();
+		List<String> keys = new ArrayList<>();
+		keys.add("address");
+		Iterator it = os.queryOrdersBySaler(salerid, goodid, keys);
 //		System.out.println(System.currentTimeMillis()-start);
+		while (it.hasNext()) {
+//			System.out.println(it.next());
+			it.next();
+		}
+		System.out.println(System.currentTimeMillis()-start);
 		//
 //		long start = System.currentTimeMillis();
 //		String goodid = "dd-a27d-835565dfb080";
@@ -1009,7 +1004,7 @@ public class OrderSystemImpl implements OrderSystem {
 				}
 			} else {
 				String line = this.goodMemoryIndexMap.get(goodId);
-				System.out.println(line);
+//				System.out.println(line);
 				if (line != null) {
 					indexArray = StringUtils.getIndexInfo(line);
 				}
@@ -1260,7 +1255,7 @@ public class OrderSystemImpl implements OrderSystem {
 	//				}
 				// 说明有这个买家的时间段记录
 				if (buyerOrderList.size() > 0) {
-	//				System.out.println(buyerOrderList.size());
+//					System.out.println(buyerOrderList.size());
 					Row kvMap;
 					Map<String,PriorityQueue<String[]>> buyerOrderAccessSequence = createOrderDataAccessSequence(buyerOrderList);
 					for (Map.Entry<String, PriorityQueue<String[]>> e : buyerOrderAccessSequence.entrySet()) {
@@ -1378,7 +1373,7 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 			
 			if (offsetRecords.size() > 0 ) {
-				System.out.println(offsetRecords.size());
+//				System.out.println(offsetRecords.size());
 				Row kvMap;
 				Map<String,PriorityQueue<String[]>> buyerOrderAccessSequence = createOrderDataAccessSequence(offsetRecords);
 				for (Map.Entry<String, PriorityQueue<String[]>> e : buyerOrderAccessSequence.entrySet()) {
