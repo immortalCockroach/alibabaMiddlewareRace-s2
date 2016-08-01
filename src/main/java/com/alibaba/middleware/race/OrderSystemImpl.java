@@ -1327,7 +1327,7 @@ public class OrderSystemImpl implements OrderSystem {
 			System.out.println("query3 count:" + query3Count.get());
 		}
 //		String tag = keys != null && keys.size() == 1 ? getKeyJoin((String)keys.toArray()[0]): "all";
-		final PriorityQueue<Row> salerGoodsQueue = new PriorityQueue<>(100, new Comparator<Row>() {
+		final PriorityQueue<Row> salerGoodsQueue = new PriorityQueue<>(512, new Comparator<Row>() {
 
 			@Override
 			public int compare(Row o1, Row o2) {
@@ -1346,7 +1346,7 @@ public class OrderSystemImpl implements OrderSystem {
 		int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
 		String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 //			cachedStrings = new ArrayList<>(100);
-		List<String> offsetRecords = new ArrayList<>(100);
+		List<String> offsetRecords = new ArrayList<>(512);
 		try (ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 			String line = indexFileReader.readLine();
 			
@@ -1473,13 +1473,13 @@ public class OrderSystemImpl implements OrderSystem {
 			tag = "order";
 		}
 		
-		List<Row> ordersData = new ArrayList<>(100);
+		List<Row> ordersData = new ArrayList<>(512);
 		
 
 		int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
 		String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 //			cachedStrings = new ArrayList<>(100);
-		List<String> offsetRecords = new ArrayList<>(100);
+		List<String> offsetRecords = new ArrayList<>(512);
 		try(ExtendBufferedReader indexFileReader = IOUtils.createReader(indexFile, CommonConstants.INDEX_BLOCK_SIZE)){
 			String line = indexFileReader.readLine();
 			
