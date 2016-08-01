@@ -439,11 +439,11 @@ public class OrderSystemImpl implements OrderSystem {
 //		query1Cache = new SimpleLRUCache<>(32768);
 		this.buyerGoodInMemory = true;
 		
-		this.query1LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
+		this.query1LineRecords = new int[CommonConstants.QUERY1_ORDER_SPLIT_SIZE];
 //		query2Cache = new SimpleLRUCache<>(16384);
 		this.query2LineRecords = new int[CommonConstants.QUERY2_ORDER_SPLIT_SIZE];
 //		query3Cache = new SimpleLRUCache<>(16384);
-		this.query3LineRecords = new int[CommonConstants.ORDER_SPLIT_SIZE];
+		this.query3LineRecords = new int[CommonConstants.QUERY3_ORDER_SPLIT_SIZE];
 //		query4Cache = new SimpleLRUCache<>(16384);
 		
 		goodsCache = new SimpleLRUCache<>(65536);
@@ -536,7 +536,7 @@ public class OrderSystemImpl implements OrderSystem {
 //			System.out.println(it.next());
 //		}
 //		System.out.println("time:"+(System.currentTimeMillis() - start));
-//		//
+		//
 
 
 //		String goodid = "aye-8837-3aca358bfad3";
@@ -553,12 +553,12 @@ public class OrderSystemImpl implements OrderSystem {
 //		}
 //		System.out.println(System.currentTimeMillis()-start);
 		//
-//		long start = System.currentTimeMillis();
-//		String goodid = "dd-a27d-835565dfb080";
-//		String attr = "a_b_3503";
-//		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
-//		System.out.println(os.sumOrdersByGood(goodid, attr));
-//		System.out.println(System.currentTimeMillis() -start);
+		long start = System.currentTimeMillis();
+		String goodid = "dd-a27d-835565dfb080";
+		String attr = "a_b_3503";
+		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
+		System.out.println(os.sumOrdersByGood(goodid, attr));
+		System.out.println(System.currentTimeMillis() -start);
 //		String goodid = "good_d191eeeb-fed1-4334-9c77-3ee6d6d66aff";
 //		String attr = "app_order_33_0";
 //		System.out.println("\n对商品id为" + goodid + "的 " + attr + "字段求和");
@@ -661,11 +661,11 @@ public class OrderSystemImpl implements OrderSystem {
 	private void constructHashIndex() {
 		// 5个线程各自完成之后 该函数才能返回
 		CountDownLatch latch = new CountDownLatch(5);
-		new Thread(new HashIndexCreator("orderid", query1IndexWriters, query1LineRecords,orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
+		new Thread(new HashIndexCreator("orderid", query1IndexWriters, query1LineRecords,orderFiles, CommonConstants.QUERY1_ORDER_SPLIT_SIZE,
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch,new String[]{"orderid"}, false)).start();
 		new Thread(new HashIndexCreator("buyerid", query2IndexWriters, query2LineRecords, orderFiles, CommonConstants.QUERY2_ORDER_SPLIT_SIZE,
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch,new String[]{"buyerid","createtime"}, false)).start();
-		new Thread(new HashIndexCreator("goodid", query3IndexWriters, query3LineRecords ,orderFiles, CommonConstants.ORDER_SPLIT_SIZE,
+		new Thread(new HashIndexCreator("goodid", query3IndexWriters, query3LineRecords ,orderFiles, CommonConstants.QUERY3_ORDER_SPLIT_SIZE,
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch, new String[]{"goodid"}, false)).start();
 		// new Thread(new HashIndexCreator("goodid", query4Writers, orderFiles,
 		// CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
@@ -712,8 +712,8 @@ public class OrderSystemImpl implements OrderSystem {
 	 */
 	private void constructWriterForIndexFile() {
 		// 创建4种查询的4中索引文件和买家 商品信息的writer
-		this.query1IndexWriters = new ExtendBufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
-		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
+		this.query1IndexWriters = new ExtendBufferedWriter[CommonConstants.QUERY1_ORDER_SPLIT_SIZE];
+		for (int i = 0; i < CommonConstants.QUERY1_ORDER_SPLIT_SIZE; i++) {
 			try {
 				String file = this.query1Path + File.separator + i + CommonConstants.INDEX_SUFFIX;
 				RandomAccessFile ran = new RandomAccessFile(file, "rw");
@@ -738,8 +738,8 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 		}
 		
-		this.query3IndexWriters = new ExtendBufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
-		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
+		this.query3IndexWriters = new ExtendBufferedWriter[CommonConstants.QUERY3_ORDER_SPLIT_SIZE];
+		for (int i = 0; i < CommonConstants.QUERY3_ORDER_SPLIT_SIZE; i++) {
 			try {
 				String file = this.query3Path + File.separator + i + CommonConstants.INDEX_SUFFIX;
 				RandomAccessFile ran = new RandomAccessFile(file, "rw");
@@ -870,7 +870,7 @@ public class OrderSystemImpl implements OrderSystem {
 		Row orderData = null;
 		
 
-		int index = indexFor(hashWithDistrub(orderId), CommonConstants.ORDER_SPLIT_SIZE);
+		int index = indexFor(hashWithDistrub(orderId), CommonConstants.QUERY1_ORDER_SPLIT_SIZE);
 		String indexFile = this.query1Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 		
 //		query1Lock.lock();
@@ -1516,7 +1516,7 @@ public class OrderSystemImpl implements OrderSystem {
 		List<Row> salerGoodsList = new ArrayList<>(512);
 		final Collection<String> queryKeys = keys;
 
-		int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
+		int index = indexFor(hashWithDistrub(goodid), CommonConstants.QUERY3_ORDER_SPLIT_SIZE);
 		String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 //			cachedStrings = new ArrayList<>(100);
 		List<String> offsetRecords = new ArrayList<>(512);
@@ -1659,7 +1659,7 @@ public class OrderSystemImpl implements OrderSystem {
 		List<Row> ordersData = new ArrayList<>(512);
 		
 
-		int index = indexFor(hashWithDistrub(goodid), CommonConstants.ORDER_SPLIT_SIZE);
+		int index = indexFor(hashWithDistrub(goodid), CommonConstants.QUERY3_ORDER_SPLIT_SIZE);
 		String indexFile = this.query3Path + File.separator + index + CommonConstants.INDEX_SUFFIX;
 //			cachedStrings = new ArrayList<>(100);
 		List<String> offsetRecords = new ArrayList<>(512);
@@ -1724,14 +1724,39 @@ public class OrderSystemImpl implements OrderSystem {
 		HashSet<String> queryingKeys = new HashSet<String>();
 		queryingKeys.add(key);
 		
-		List<ResultImpl> allData = new ArrayList<ResultImpl>(ordersData.size());
+		List<Result> allData = new ArrayList<>(ordersData.size());
 		// query4至多只需要join buyer信息
-		for (Row orderData : ordersData) {
-			Row buyerData = null;
-			if (tag.equals("buyer") || tag.equals("all")) {
-				buyerData = getBuyerRowFromOrderData(orderData);
+		if(tag.equals("order")) { // 说明此时只有orderData 不需要join
+			for (Row orderData : ordersData) {
+//				Row buyerData = null;
+//				if (tag.equals("buyer") || tag.equals("all")) {
+//					buyerData = getBuyerRowFromOrderData(orderData);
+//				}
+				allData.add(ResultImpl.createResultRow(orderData, null, null, queryingKeys));
 			}
-			allData.add(ResultImpl.createResultRow(orderData, buyerData, null, queryingKeys));
+		} else { // buyer或者all
+			Comparator<Row> comparator = new Comparator<Row>() {
+
+				@Override
+				public int compare(Row o1, Row o2) {
+					// TODO Auto-generated method stub
+					long o2Time;
+					long o1Time;
+					o1Time = o1.get("orderid").longValue;
+					o2Time = o2.get("orderid").longValue;
+					return o1Time - o2Time > 0 ? 1 : -1;
+				}
+
+			};
+			// 不需要join good信息
+			JoinOne joinResult = new JoinOne(ordersData, null, comparator, "buyerid", queryingKeys);
+
+			while (joinResult.hasNext()) {
+				allData.add(joinResult.next());
+			}
+			if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+				System.out.println("query4 join time:" + (System.currentTimeMillis() - start));
+			}
 		}
 
 		if (count % CommonConstants.QUERY_PRINT_COUNT ==0) {
@@ -1741,7 +1766,7 @@ public class OrderSystemImpl implements OrderSystem {
 		try {
 			boolean hasValidData = false;
 			long sum = 0;
-			for (ResultImpl r : allData) {
+			for (Result r : allData) {
 				KeyValue kv = r.get(key);
 				if (kv != null) {
 					sum += kv.valueAsLong();
@@ -1758,7 +1783,7 @@ public class OrderSystemImpl implements OrderSystem {
 		try {
 			boolean hasValidData = false;
 			double sum = 0;
-			for (ResultImpl r : allData) {
+			for (Result r : allData) {
 				KeyValue kv = r.get(key);
 				if (kv != null) {
 					sum += kv.valueAsDouble();
@@ -1782,7 +1807,7 @@ public class OrderSystemImpl implements OrderSystem {
 	 * @return
 	 */
 	private KeyValue getGoodSumFromGood(String goodId, String key) {
-		int index = indexFor(hashWithDistrub(goodId), CommonConstants.ORDER_SPLIT_SIZE);
+		int index = indexFor(hashWithDistrub(goodId), CommonConstants.QUERY3_ORDER_SPLIT_SIZE);
 		Row orderData = new Row();
 		orderData.putKV("goodid", goodId);
 		// 去good的indexFile中查找goodid对应的全部信息

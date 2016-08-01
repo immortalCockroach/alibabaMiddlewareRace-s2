@@ -15,9 +15,11 @@ public class CommonConstants {
 	public static final String NEW_LINE = System.getProperty("line.separator");
 	
 	// order文件被切割的份数 保持2^n
-	public static final int ORDER_SPLIT_SIZE = 2048;
+	public static final int QUERY1_ORDER_SPLIT_SIZE = 2048;
 	
 	public static final int QUERY2_ORDER_SPLIT_SIZE = 4096;
+	
+	public static final int QUERY3_ORDER_SPLIT_SIZE = 2048;
 	
 	// 买家 商品文件切割份数
 	public static final int OTHER_SPLIT_SIZE = 1024;
@@ -38,7 +40,7 @@ public class CommonConstants {
 	
 	public static final char SPLITTER = '\t';
 	
-	public static final int QUERY_PRINT_COUNT = 256;
+	public static final int QUERY_PRINT_COUNT = 1;
 	
 	public static final int CACHE_PRINT_COUNT = 256;
 	
