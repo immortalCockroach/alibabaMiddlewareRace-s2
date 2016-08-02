@@ -95,8 +95,8 @@ public class OrderSystemImpl implements OrderSystem {
 //	private AtomicInteger q2CacheHit;
 //	private AtomicInteger q3CacheHit;
 //	private AtomicInteger q4CacheHit;
-	private AtomicInteger buyerCacheHit;
-	private AtomicInteger goodCacheHit;
+//	private AtomicInteger buyerCacheHit;
+//	private AtomicInteger goodCacheHit;
 	
 	private volatile boolean isConstructed;
 	
@@ -478,8 +478,8 @@ public class OrderSystemImpl implements OrderSystem {
 ////		q2CacheHit = new AtomicInteger(0);
 //		q3CacheHit = new AtomicInteger(0);
 //		q4CacheHit = new AtomicInteger(0);
-		buyerCacheHit = new AtomicInteger(0);
-		goodCacheHit = new AtomicInteger(0);
+//		buyerCacheHit = new AtomicInteger(0);
+//		goodCacheHit = new AtomicInteger(0);
 		
 		multiQueryPool2 = Executors.newFixedThreadPool(8);
 		multiQueryPool3 = Executors.newFixedThreadPool(8);
@@ -995,9 +995,9 @@ public class OrderSystemImpl implements OrderSystem {
 		String cachedString = goodsCache.get(goodId);
 		if (cachedString != null) {
 			goodData = StringUtils.createKVMapFromLine(cachedString, CommonConstants.SPLITTER);
-			if (goodCacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
-				System.out.println("good cache hit:" + goodCacheHit.get());
-			}
+//			if (goodCacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
+//				System.out.println("good cache hit:" + goodCacheHit.get());
+//			}
 		} else {
 			String[] indexArray = null;
 //			HashMap<String,String> indexMap = null;
@@ -1051,9 +1051,9 @@ public class OrderSystemImpl implements OrderSystem {
 		String cachedString = buyersCache.get(buyerId);
 		if (cachedString != null) {
 			buyerData = StringUtils.createKVMapFromLine(cachedString, CommonConstants.SPLITTER);
-			if (buyerCacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
-				System.out.println("buyer cache hit:" + buyerCacheHit.get());
-			}
+//			if (buyerCacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
+//				System.out.println("buyer cache hit:" + buyerCacheHit.get());
+//			}
 		} else {
 			String[] indexArray = null;
 			if (!this.buyerGoodInMemory) {
@@ -1431,15 +1431,15 @@ public class OrderSystemImpl implements OrderSystem {
 					// 说明cache中有对应id的row信息，直接转换并加入Map
 					if (cachedString != null) {
 						Row goodData = StringUtils.createKVMapFromLine(cachedString, CommonConstants.SPLITTER);
-						if (joinId.equals("buyerid")) {
-							if (goodCacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
-								System.out.println("good cache hit:" + goodCacheHit.get());
-							}
-						} else {
-							if (buyerCacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
-								System.out.println("buyer cache hit:" + buyerCacheHit.get());
-							}
-						}
+//						if (joinId.equals("buyerid")) {
+//							if (goodCacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
+//								System.out.println("good cache hit:" + goodCacheHit.get());
+//							}
+//						} else {
+//							if (buyerCacheHit.incrementAndGet() % CommonConstants.CACHE_PRINT_COUNT == 0) {
+//								System.out.println("buyer cache hit:" + buyerCacheHit.get());
+//							}
+//						}
 
 						joinDataMap.put(id, goodData);
 					} else { // cache中不包含时从memoryMap取原始数据的index信息,便于之后查找
