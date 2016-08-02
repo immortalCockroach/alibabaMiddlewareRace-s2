@@ -313,10 +313,10 @@ public class OrderSystemImpl implements OrderSystem {
 							offset += (length + 1);
 							
 							
-							buildCount++;
-							if ((buildCount & (mod - 1)) == 0) {
-								System.out.println(hashId + "construct:" + buildCount);
-							}
+//							buildCount++;
+//							if ((buildCount & (mod - 1)) == 0) {
+//								System.out.println(hashId + "construct:" + buildCount);
+//							}
 						}
 						
 						if (readLines == 0) {
