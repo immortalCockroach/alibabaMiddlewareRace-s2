@@ -481,9 +481,9 @@ public class OrderSystemImpl implements OrderSystem {
 		buyerCacheHit = new AtomicInteger(0);
 		goodCacheHit = new AtomicInteger(0);
 		
-		multiQueryPool2 = Executors.newFixedThreadPool(16);
-		multiQueryPool3 = Executors.newFixedThreadPool(16);
-		multiQueryPool4 = Executors.newFixedThreadPool(16);
+		multiQueryPool2 = Executors.newFixedThreadPool(8);
+		multiQueryPool3 = Executors.newFixedThreadPool(8);
+		multiQueryPool4 = Executors.newFixedThreadPool(8);
 	}
 
 	public static void main(String[] args) throws IOException, InterruptedException {
