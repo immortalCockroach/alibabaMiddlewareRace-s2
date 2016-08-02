@@ -13,7 +13,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -47,6 +52,10 @@ public class OrderSystemImpl implements OrderSystem {
 	
 	private String buyersPath;
 	private String goodsPath;
+	
+	private ExecutorService multiQueryPool2;
+	private ExecutorService multiQueryPool3;
+	private ExecutorService multiQueryPool4;
 	
 	/**
 	 * 这个数据记录每个文件的行当前写入的record数量，当大于INDEX_LINE_RECORDS的时候，换行
@@ -471,6 +480,10 @@ public class OrderSystemImpl implements OrderSystem {
 //		q4CacheHit = new AtomicInteger(0);
 		buyerCacheHit = new AtomicInteger(0);
 		goodCacheHit = new AtomicInteger(0);
+		
+		multiQueryPool2 = Executors.newFixedThreadPool(16);
+		multiQueryPool3 = Executors.newFixedThreadPool(16);
+		multiQueryPool4 = Executors.newFixedThreadPool(16);
 	}
 
 	public static void main(String[] args) throws IOException, InterruptedException {
@@ -493,7 +506,7 @@ public class OrderSystemImpl implements OrderSystem {
 		storeFolders.add("./");
 
 		storeFolders.add("./data");
-		OrderSystem os = new OrderSystemImpl();
+		OrderSystemImpl os = new OrderSystemImpl();
 		os.construct(orderFiles, buyerFiles, goodFiles, storeFolders);
 
 		// 用例
@@ -532,8 +545,8 @@ public class OrderSystemImpl implements OrderSystem {
 //		
 //		System.out.println("\n查询买家ID为" + buyerid + "的一定时间范围内的订单");
 //		while (it.hasNext()) {
-////			it.next();
-//			System.out.println(it.next());
+//			it.next();
+////			System.out.println(it.next());
 //		}
 //		System.out.println("time:"+(System.currentTimeMillis() - start));
 		//
@@ -548,8 +561,8 @@ public class OrderSystemImpl implements OrderSystem {
 //		Iterator it = os.queryOrdersBySaler(salerid, goodid, keys);
 ////		System.out.println(System.currentTimeMillis()-start);
 //		while (it.hasNext()) {
-//			System.out.println(it.next());
-////			it.next();
+////			System.out.println(it.next());
+//			it.next();
 //		}
 //		System.out.println(System.currentTimeMillis()-start);
 		//
@@ -577,6 +590,8 @@ public class OrderSystemImpl implements OrderSystem {
 //		if (sum == null) {
 //			System.out.println("由于该字段不存在，返回值是null");
 //		}
+//		os.close();
+		
 	}
 
 
@@ -1257,31 +1272,49 @@ public class OrderSystemImpl implements OrderSystem {
 				
 				if (buyerOrderList.size() > 0) {
 //					System.out.println(buyerOrderList.size());
-					Row kvMap;
+//					Row kvMap;
 					Map<String,PriorityQueue<String[]>> buyerOrderAccessSequence = createOrderDataAccessSequence(buyerOrderList);
+					List<Future<List<Row>>> result = new ArrayList<>();
 					for (Map.Entry<String, PriorityQueue<String[]>> e : buyerOrderAccessSequence.entrySet()) {
-						String file = this.orderFiles.get(Integer.parseInt(e.getKey()));
-	//					System.out.println("file:"+file);
-						String[] sequence;
-						try(RandomAccessFile orderFileReader = new RandomAccessFile(file, "r")) {
-							sequence = e.getValue().poll();
-							while(sequence != null) {
-								
-								Long offset = Long.parseLong(sequence[0]);
-	//							System.out.println("offset:"+offset);
-	//							System.out.println("lenth:"+Integer.valueOf(sequence[1]));
-								byte[] content = new byte[Integer.valueOf(sequence[1])];
-								orderFileReader.seek(offset);
-								orderFileReader.read(content);
-								line = new String(content);
-		
-								kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
-								buyerOrderResultList.add(kvMap);
-//								buyerOrderQueue.offer(kvMap);
-								sequence = e.getValue().poll();
+//						String file = this.orderFiles.get(Integer.parseInt(e.getKey()));
+//	//					System.out.println("file:"+file);
+//						String[] sequence;
+//						try(RandomAccessFile orderFileReader = new RandomAccessFile(file, "r")) {
+//							sequence = e.getValue().poll();
+//							while(sequence != null) {
+//								
+//								Long offset = Long.parseLong(sequence[0]);
+//	//							System.out.println("offset:"+offset);
+//	//							System.out.println("lenth:"+Integer.valueOf(sequence[1]));
+//								byte[] content = new byte[Integer.valueOf(sequence[1])];
+//								orderFileReader.seek(offset);
+//								orderFileReader.read(content);
+//								line = new String(content);
+//		
+//								kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
+//								buyerOrderResultList.add(kvMap);
+////								buyerOrderQueue.offer(kvMap);
+//								sequence = e.getValue().poll();
+//							}
+//							
+//						} 
+						int fileIndex = Integer.parseInt(e.getKey());
+						OrderDataSearch search = new OrderDataSearch(fileIndex, e.getValue());
+						result.add(multiQueryPool2.submit(search));
+						
+					}
+					for (Future<List<Row>> f: result) {
+						try {
+							List<Row> list = f.get();
+							if (list != null) {
+								for(Row row : list) {
+									buyerOrderResultList.add(row);
+								}
 							}
-							
-						} 	
+						} catch (InterruptedException | ExecutionException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
 					}
 	
 					if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
@@ -1492,6 +1525,47 @@ public class OrderSystemImpl implements OrderSystem {
 			// TODO Auto-generated method stub	
 		}
 	}
+	
+	private class OrderDataSearch implements Callable<List<Row>> {
+		
+		private int fileIndex;
+		private PriorityQueue<String[]> sequenceQueue;
+		
+		public OrderDataSearch(int fileIndex, PriorityQueue<String[]> sequenceQueue) {
+			this.fileIndex = fileIndex;
+			this.sequenceQueue = sequenceQueue;
+		}
+		@Override
+		public List<Row> call() throws Exception {
+			// 这个sequence不可能是负数
+			List<Row> result = new ArrayList<>(sequenceQueue.size());
+			String file = orderFiles.get(fileIndex);
+//			System.out.println("file:"+file);
+			String[] sequence;
+			try(RandomAccessFile orderFileReader = new RandomAccessFile(file, "r")) {
+				sequence = sequenceQueue.poll();
+				while(sequence != null) {
+					
+					Long offset = Long.parseLong(sequence[0]);
+//					System.out.println("offset:"+offset);
+//					System.out.println("lenth:"+Integer.valueOf(sequence[1]));
+					byte[] content = new byte[Integer.valueOf(sequence[1])];
+					orderFileReader.seek(offset);
+					orderFileReader.read(content);
+					String line = new String(content);
+
+					Row kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
+					// buyer的话需要join
+					result.add(kvMap);
+//					salerGoodsQueue.offer(kvMap);
+					sequence = sequenceQueue.poll();
+				}
+				
+			} 	
+			return result;
+		}
+		
+	}
 
 	public Iterator<Result> queryOrdersBySaler(String salerid, String goodid, Collection<String> keys) {
 		while (this.isConstructed == false) {
@@ -1546,32 +1620,49 @@ public class OrderSystemImpl implements OrderSystem {
 			
 			if (offsetRecords.size() > 0 ) {
 //				System.out.println(offsetRecords.size());
-				Row kvMap;
+//				Row kvMap;
 				Map<String,PriorityQueue<String[]>> buyerOrderAccessSequence = createOrderDataAccessSequence(offsetRecords);
+				List<Future<List<Row>>> result = new ArrayList<>();
 				for (Map.Entry<String, PriorityQueue<String[]>> e : buyerOrderAccessSequence.entrySet()) {
-					String file = this.orderFiles.get(Integer.parseInt(e.getKey()));
-//					System.out.println("file:"+file);
-					String[] sequence;
-					try(RandomAccessFile orderFileReader = new RandomAccessFile(file, "r")) {
-						sequence = e.getValue().poll();
-						while(sequence != null) {
-							
-							Long offset = Long.parseLong(sequence[0]);
-//							System.out.println("offset:"+offset);
-//							System.out.println("lenth:"+Integer.valueOf(sequence[1]));
-							byte[] content = new byte[Integer.valueOf(sequence[1])];
-							orderFileReader.seek(offset);
-							orderFileReader.read(content);
-							line = new String(content);
-	
-							kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
-							// buyer的话需要join
-							salerGoodsList.add(kvMap);
-//							salerGoodsQueue.offer(kvMap);
-							sequence = e.getValue().poll();
+//					String file = this.orderFiles.get(Integer.parseInt(e.getKey()));
+////					System.out.println("file:"+file);
+//					String[] sequence;
+//					try(RandomAccessFile orderFileReader = new RandomAccessFile(file, "r")) {
+//						sequence = e.getValue().poll();
+//						while(sequence != null) {
+//							
+//							Long offset = Long.parseLong(sequence[0]);
+////							System.out.println("offset:"+offset);
+////							System.out.println("lenth:"+Integer.valueOf(sequence[1]));
+//							byte[] content = new byte[Integer.valueOf(sequence[1])];
+//							orderFileReader.seek(offset);
+//							orderFileReader.read(content);
+//							line = new String(content);
+//	
+//							kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
+//							// buyer的话需要join
+//							salerGoodsList.add(kvMap);
+////							salerGoodsQueue.offer(kvMap);
+//							sequence = e.getValue().poll();
+//						}
+//						
+//					} 
+					int fileIndex = Integer.parseInt(e.getKey());
+					OrderDataSearch search = new OrderDataSearch(fileIndex, e.getValue());
+					result.add(multiQueryPool3.submit(search));
+				}
+				for (Future<List<Row>> f: result) {
+					try {
+						List<Row> list = f.get();
+						if (list != null) {
+							for(Row row : list) {
+								salerGoodsList.add(row);
+							}
 						}
-						
-					} 	
+					} catch (InterruptedException | ExecutionException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
 				}
 
 				if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
@@ -1662,6 +1753,9 @@ public class OrderSystemImpl implements OrderSystem {
 			tag = "buyer";
 		} else if (key.equals("amount") || key.startsWith("a_o_")) { //表示只需要order数据
 			tag = "order";
+		} else {
+			// 不可求和的字段直接返回
+			return null;
 		}
 		
 		List<Row> ordersData = new ArrayList<>(512);
@@ -1689,29 +1783,46 @@ public class OrderSystemImpl implements OrderSystem {
 			
 			if (offsetRecords.size() > 0 ) {
 //				System.out.println(offsetRecords.size());
-				Row kvMap;
+//				Row kvMap;
 				Map<String,PriorityQueue<String[]>> buyerOrderAccessSequence = createOrderDataAccessSequence(offsetRecords);
+				List<Future<List<Row>>> result = new ArrayList<>();
 				for (Map.Entry<String, PriorityQueue<String[]>> e : buyerOrderAccessSequence.entrySet()) {
-					String file = this.orderFiles.get(Integer.parseInt(e.getKey()));
-//					System.out.println("file:"+file);
-					String[] sequence;
-					try(RandomAccessFile orderFileReader = new RandomAccessFile(file, "r")) {
-						sequence = e.getValue().poll();
-						while(sequence != null) {
-							
-							Long offset = Long.parseLong(sequence[0]);
-
-							byte[] content = new byte[Integer.valueOf(sequence[1])];
-							orderFileReader.seek(offset);
-							orderFileReader.read(content);
-							line = new String(content);
-	
-							kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
-							ordersData.add(kvMap);
-							sequence = e.getValue().poll();
+//					String file = this.orderFiles.get(Integer.parseInt(e.getKey()));
+////					System.out.println("file:"+file);
+//					String[] sequence;
+//					try(RandomAccessFile orderFileReader = new RandomAccessFile(file, "r")) {
+//						sequence = e.getValue().poll();
+//						while(sequence != null) {
+//							
+//							Long offset = Long.parseLong(sequence[0]);
+//
+//							byte[] content = new byte[Integer.valueOf(sequence[1])];
+//							orderFileReader.seek(offset);
+//							orderFileReader.read(content);
+//							line = new String(content);
+//	
+//							kvMap = StringUtils.createKVMapFromLine(line, CommonConstants.SPLITTER);
+//							ordersData.add(kvMap);
+//							sequence = e.getValue().poll();
+//						}
+//						
+//					}
+					int fileIndex = Integer.parseInt(e.getKey());
+					OrderDataSearch search = new OrderDataSearch(fileIndex, e.getValue());
+					result.add(multiQueryPool4.submit(search));
+				}
+				for (Future<List<Row>> f: result) {
+					try {
+						List<Row> list = f.get();
+						if (list != null) {
+							for(Row row : list) {
+								ordersData.add(row);
+							}
 						}
-						
-					} 	
+					} catch (InterruptedException | ExecutionException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
 				}
 
 				if (count % CommonConstants.QUERY_PRINT_COUNT ==0) {
@@ -1860,4 +1971,8 @@ public class OrderSystemImpl implements OrderSystem {
 			return new KV(key, Double.toString(result));
 		}
 	}
+	
+//	private void close() {
+//		multiQueryPool.shutdown();
+//	}
 }
