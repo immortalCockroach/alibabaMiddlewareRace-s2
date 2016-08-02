@@ -1321,7 +1321,7 @@ public class OrderSystemImpl implements OrderSystem {
 						System.out.println("query2 original data time:" + (System.currentTimeMillis() - start) + "size:" + buyerOrderAccessSequence.size());
 					}
 				} else {
-					System.out.println("query2 can't find order:" + buyerid + "," + startTime + "," + endTime);
+//					System.out.println("query2 can't find order:" + buyerid + "," + startTime + "," + endTime);
 				}
 	
 			} catch(IOException e) {
