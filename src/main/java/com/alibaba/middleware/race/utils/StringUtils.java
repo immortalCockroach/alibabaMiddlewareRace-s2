@@ -1,10 +1,14 @@
 package com.alibaba.middleware.race.utils;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 import com.alibaba.middleware.race.OrderSystemImpl.KV;
@@ -138,6 +142,61 @@ public class StringUtils {
 		// }
 		KV kv = new KV(key, value);
 		kvMap.put(kv.key(), kv);
+		return kvMap;
+	}
+	
+	/**
+	 * 从一行中取出在set集合中的value 减少开销
+	 * @param line
+	 * @param splitch
+	 * @param set
+	 * @return
+	 */
+	public static Row createKVMapFromLineWithSet(String line, char splitch, HashSet<String> set) {
+		int splitIndex;
+		if (line.charAt(line.length() - 1) == splitch) {
+			line = line.substring(0, line.length() - 1);
+		}
+		
+		int size = set.size();
+		
+		Row kvMap = new Row();
+		String splitted;
+		splitIndex = line.indexOf(splitch);
+		int p;
+		String key;
+//		String value;
+		while (splitIndex != -1 && size > 0) {
+			splitted = line.substring(0, splitIndex);
+			line = line.substring(splitIndex + 1);
+			p = splitted.indexOf(':');
+			key = splitted.substring(0, p);
+//			value = splitted.substring(p + 1);
+			// if (key.length() == 0 || value.length() == 0) {
+			// throw new RuntimeException("Bad data:" + line);
+			// }
+			if (set.contains(key)) {
+				KV kv = new KV(key, splitted.substring(p + 1));
+				kvMap.put(kv.key(), kv);
+				size--;
+			}
+
+			splitIndex = line.indexOf(splitch);
+		}
+		if (size > 0) {
+			splitted = line;
+			p = splitted.indexOf(':');
+			key = splitted.substring(0, p);
+//			value = splitted.substring(p + 1);
+			// if (key.length() == 0 || value.length() == 0) {
+			// throw new RuntimeException("Bad data:" + line);
+			// }
+			if (set.contains(key)) {
+				KV kv = new KV(key, splitted.substring(p + 1));
+				kvMap.put(kv.key(), kv);
+				size--;
+			}
+		}
 		return kvMap;
 	}
 	
@@ -312,5 +371,39 @@ public class StringUtils {
 			
 		}
 		return null;
+	}
+	
+	public static byte[] getBuyerByteArray(String buyerContent) {
+		// createtime fileIndex offsetLen
+		String[] content = buyerContent.split(" ");
+		ByteArrayOutputStream bo = new ByteArrayOutputStream();
+		DataOutputStream dos = new DataOutputStream(bo);
+		
+		try {
+			dos.writeLong(Long.parseLong(content[0]));
+			dos.writeInt(Integer.parseInt(content[1]));
+			dos.writeLong(Long.parseLong(content[2]));
+			dos.writeInt(Integer.parseInt(content[3]));
+		} catch (NumberFormatException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return bo.toByteArray();
+	}
+	
+	public static byte[] getGoodByteArray(String goodContent) {
+		String[] content = goodContent.split(" ");
+		ByteArrayOutputStream bo = new ByteArrayOutputStream();
+		DataOutputStream dos = new DataOutputStream(bo);
+		
+		try {
+			dos.writeInt(Integer.parseInt(content[0]));
+			dos.writeLong(Long.parseLong(content[1]));
+			dos.writeInt(Integer.parseInt(content[2]));
+		} catch (NumberFormatException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return bo.toByteArray();
 	}
 }
