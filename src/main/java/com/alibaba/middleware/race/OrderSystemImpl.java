@@ -91,10 +91,10 @@ public class OrderSystemImpl implements OrderSystem {
 	private ExtendBufferedWriter[] goodsIndexWriters;
 //	private SimpleLRUCache<String, String> goodsCache;
 	private HashMap<String,MetaTuple> goodMemoryIndexMap; 
-//	private AtomicInteger query1Count;
-//	private AtomicInteger query2Count;
-//	private AtomicInteger query3Count;
-//	private AtomicInteger query4Count;
+	private AtomicInteger query1Count;
+	private AtomicInteger query2Count;
+	private AtomicInteger query3Count;
+	private AtomicInteger query4Count;
 	
 //	private AtomicInteger q1CacheHit;
 //	private AtomicInteger q2CacheHit;
@@ -639,20 +639,20 @@ public class OrderSystemImpl implements OrderSystem {
 		if (!buyerGoodInMemory) {
 //			this.goodLineRecords = new int[CommonConstants.OTHER_SPLIT_SIZE];
 		} else {
-			this.goodMemoryIndexMap = new HashMap<>(4096, 1f);
+			this.goodMemoryIndexMap = new HashMap<>(4194304, 1f);
 		}
 //		buyersCache = new SimpleLRUCache<>(65536);
 		if (!buyerGoodInMemory) {
 //			this.buyerLineRecords = new int[CommonConstants.OTHER_SPLIT_SIZE];
 		}  else {
-			this.buyerMemoryIndexMap = new HashMap<>(8192, 1f);
+			this.buyerMemoryIndexMap = new HashMap<>(8388608, 1f);
 		}
 		isConstructed = false;
 		
-//		query1Count = new AtomicInteger(0);
-//		query2Count = new AtomicInteger(0);
-//		query3Count = new AtomicInteger(0);
-//		query4Count = new AtomicInteger(0);
+		query1Count = new AtomicInteger(0);
+		query2Count = new AtomicInteger(0);
+		query3Count = new AtomicInteger(0);
+		query4Count = new AtomicInteger(0);
 		
 //		q1CacheHit = new AtomicInteger(0);
 ////		q2CacheHit = new AtomicInteger(0);
@@ -661,9 +661,9 @@ public class OrderSystemImpl implements OrderSystem {
 //		buyerCacheHit = new AtomicInteger(0);
 //		goodCacheHit = new AtomicInteger(0);
 		
-		multiQueryPool2 = Executors.newFixedThreadPool(2);
-		multiQueryPool3 = Executors.newFixedThreadPool(2);
-		multiQueryPool4 = Executors.newFixedThreadPool(2);
+		multiQueryPool2 = Executors.newFixedThreadPool(8);
+		multiQueryPool3 = Executors.newFixedThreadPool(8);
+		multiQueryPool4 = Executors.newFixedThreadPool(8);
 	}
 
 	public static void main(String[] args) throws IOException, InterruptedException {
@@ -1048,11 +1048,11 @@ public class OrderSystemImpl implements OrderSystem {
 				e.printStackTrace();
 			}
 		}
-//		final long start = System.currentTimeMillis();
-//		int count  = query1Count.incrementAndGet();
-//		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-//			System.out.println("query1count:" + query1Count.get());	
-//		}
+		final long start = System.currentTimeMillis();
+		int count  = query1Count.incrementAndGet();
+		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+			System.out.println("query1count:" + count);	
+		}
 		Row query = new Row();
 		query.putKV("orderid", orderId);
 
@@ -1080,9 +1080,9 @@ public class OrderSystemImpl implements OrderSystem {
 				line = indexFileReader.readLine();
 				
 			}
-//			if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-//				System.out.println("query1 index time:" + (System.currentTimeMillis() - start));
-//			}
+			if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+				System.out.println("query1 index time:" + (System.currentTimeMillis() - start));
+			}
 			// 说明文件中没有这个orderId的信息
 			if (indexArray == null) {
 				System.out.println("query1 can't find order:");
@@ -1103,9 +1103,9 @@ public class OrderSystemImpl implements OrderSystem {
 			} catch (IOException e) {
 				// 忽略
 			}
-//			if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-//				System.out.println("query1 original data time:" + (System.currentTimeMillis() - start));
-//			}
+			if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+				System.out.println("query1 original data time:" + (System.currentTimeMillis() - start));
+			}
 		} catch(IOException e) {
 			
 		}
@@ -1120,9 +1120,9 @@ public class OrderSystemImpl implements OrderSystem {
 			return null;
 		}
 		ResultImpl result= createResultFromOrderData(orderData, createQueryKeys(keys));
-//		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-//			System.out.println("query1 all time:" + (System.currentTimeMillis() - start));
-//		}
+		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+			System.out.println("query1 join time:" + (System.currentTimeMillis() - start));
+		}
 		return result;
 	}
 	
@@ -1310,11 +1310,11 @@ public class OrderSystemImpl implements OrderSystem {
 				e.printStackTrace();
 			}
 		}
-//		final long start = System.currentTimeMillis();
-//		int count = query2Count.incrementAndGet();
-//		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-//			System.out.println("query2 count:" + query2Count.get());
-//		}
+		final long start = System.currentTimeMillis();
+		int q2count = query2Count.incrementAndGet();
+		if (q2count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+			System.out.println("query2 count:" + q2count);
+		}
 		
 		List<Row> buyerOrderResultList = new ArrayList<>(100);
 		
@@ -1364,6 +1364,9 @@ public class OrderSystemImpl implements OrderSystem {
 			} catch(IOException e) {
 				
 			}
+			if (q2count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+				System.out.println("query2 index time:" + (System.currentTimeMillis() - start) + "size:" + buyerOrderList.size());
+			}
 		}
 		if (buyerOrderList.size() > 0) {
 //			System.out.println(buyerOrderList.size());
@@ -1389,9 +1392,9 @@ public class OrderSystemImpl implements OrderSystem {
 				}
 			}
 
-//			if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-//				System.out.println("query2 original data time:" + (System.currentTimeMillis() - start) + "size:" + buyerOrderAccessSequence.size());
-//			}
+			if (q2count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+				System.out.println("query2 original data time:" + (System.currentTimeMillis() - start) + "size:" + buyerOrderAccessSequence.size());
+			}
 		} else {
 //			System.out.println("query2 can't find order:" + buyerid + "," + startTime + "," + endTime);
 		}
@@ -1414,9 +1417,9 @@ public class OrderSystemImpl implements OrderSystem {
 
 		};
 		JoinOne joinResult = new JoinOne(buyerOrderResultList, buyerRow, comparator, "goodid", null);
-//		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-//			System.out.println("query2 join time:" + (System.currentTimeMillis() - start));
-//		}
+		if (q2count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+			System.out.println("query2 join time:" + (System.currentTimeMillis() - start));
+		}
 		return joinResult;
 	}
 	
@@ -1596,11 +1599,11 @@ public class OrderSystemImpl implements OrderSystem {
 				e.printStackTrace();
 			}
 		}
-//		final long start = System.currentTimeMillis();
-//		int count = query3Count.incrementAndGet();
-//		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-//			System.out.println("query3 count:" + query3Count.get());
-//		}
+		final long start = System.currentTimeMillis();
+		int q3count = query3Count.incrementAndGet();
+		if (q3count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+			System.out.println("query3 count:" + query3Count.get());
+		}
 		boolean validParameter = true;
 		MetaTuple goodTuple = this.goodMemoryIndexMap.get(goodid);
 		if (goodTuple == null) {
@@ -1623,9 +1626,9 @@ public class OrderSystemImpl implements OrderSystem {
 					offsetRecords.add(content);
 					
 				}
-	//			if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-	//				System.out.println("query3 index time:" + (System.currentTimeMillis() - start) + "size:" +offsetRecords.size());
-	//			}
+				if (q3count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+					System.out.println("query3 index time:" + (System.currentTimeMillis() - start) + "size:" +offsetRecords.size());
+				}
 				
 			} catch (IOException e) {
 				
@@ -1655,9 +1658,9 @@ public class OrderSystemImpl implements OrderSystem {
 				}
 			}
 
-//			if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-//				System.out.println("query3 original data time:" + (System.currentTimeMillis() - start) + "size:" + buyerOrderAccessSequence.size());
-//			}
+			if (q3count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+				System.out.println("query3 original data time:" + (System.currentTimeMillis() - start) + "size:" + buyerOrderAccessSequence.size());
+			}
 		} else {
 			System.out.println("query3 can't find order:");
 		}
@@ -1680,9 +1683,9 @@ public class OrderSystemImpl implements OrderSystem {
 //		 查询3可能不需要join的buyer
 		String joinTable = tag.equals("buyer") || tag.equals("all") ? "buyerid" : null;
 		JoinOne joinResult = new JoinOne(salerGoodsList, goodRow, comparator, joinTable, createQueryKeys(queryKeys));
-//		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-//			System.out.println("query3 join time:" + (System.currentTimeMillis() - start));
-//		}
+		if (q3count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+			System.out.println("query3 join time:" + (System.currentTimeMillis() - start));
+		}
 		return joinResult;
 	}
 
@@ -1695,11 +1698,11 @@ public class OrderSystemImpl implements OrderSystem {
 				e.printStackTrace();
 			}
 		}
-//		long start = System.currentTimeMillis();
-//		int count = query4Count.incrementAndGet();
-//		if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-//			System.out.println("query4 count:" + query4Count.get());	
-//		}
+		long start = System.currentTimeMillis();
+		int q4count = query4Count.incrementAndGet();
+		if (q4count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+			System.out.println("query4 count:" + q4count);	
+		}
 		// 快速处理 减少不必要的查询的join开销
 		MetaTuple goodTuple = this.goodMemoryIndexMap.get(goodid);
 		if (goodTuple == null) {
@@ -1733,9 +1736,9 @@ public class OrderSystemImpl implements OrderSystem {
 				offsetRecords.add(content);
 				
 			}
-//			if (count % CommonConstants.QUERY_PRINT_COUNT ==0) {
-//				System.out.println("query4 index time:"+ (System.currentTimeMillis() - start) + "size:" + offsetRecords.size());
-//			}
+			if (q4count % CommonConstants.QUERY_PRINT_COUNT ==0) {
+				System.out.println("query4 index time:"+ (System.currentTimeMillis() - start) + "size:" + offsetRecords.size());
+			}
 			
 		} catch (IOException e) {
 			
@@ -1765,9 +1768,9 @@ public class OrderSystemImpl implements OrderSystem {
 				}
 			}
 
-//			if (count % CommonConstants.QUERY_PRINT_COUNT ==0) {
-//				System.out.println("query4 original time:"+ (System.currentTimeMillis() - start) + "size:" + buyerOrderAccessSequence.size());
-//			}
+			if (q4count % CommonConstants.QUERY_PRINT_COUNT ==0) {
+				System.out.println("query4 original time:"+ (System.currentTimeMillis() - start) + "size:" + buyerOrderAccessSequence.size());
+			}
 		} else {
 			System.out.println("query4 can't find order:");
 		}
@@ -1808,12 +1811,12 @@ public class OrderSystemImpl implements OrderSystem {
 			while (joinResult.hasNext()) {
 				allData.add(joinResult.next());
 			}
-//			if (count % CommonConstants.QUERY_PRINT_COUNT == 0) {
-//				System.out.println("query4 join time:" + (System.currentTimeMillis() - start));
-//			}
+			if (q4count % CommonConstants.QUERY_PRINT_COUNT == 0) {
+				System.out.println("query4 join time:" + (System.currentTimeMillis() - start));
+			}
 		}
 
-//		if (count % CommonConstants.QUERY_PRINT_COUNT ==0) {
+//		if (q4count % CommonConstants.QUERY_PRINT_COUNT ==0) {
 //			System.out.println("query4 all time:"+ (System.currentTimeMillis() - start));
 //		}
 		// accumulate as Long
