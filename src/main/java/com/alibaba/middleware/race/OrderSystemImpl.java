@@ -479,7 +479,7 @@ public class OrderSystemImpl implements OrderSystem {
 			// TODO Auto-generated method stub
 			int fileIndex = 0;
 			for(String orderFile : this.files) {
-				System.out.println(orderFile);
+//				System.out.println(orderFile);
 				Row kvMap = null;
 				// 记录当前行的偏移
 				long offset = 0L;
