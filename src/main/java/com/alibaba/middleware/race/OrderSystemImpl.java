@@ -230,15 +230,13 @@ public class OrderSystemImpl implements OrderSystem {
 		private String hashId;
 
 		private ExtendBufferedWriter[] offSetwriters;
-		private int[] indexLineRecords;
 		private Collection<String> files;
 		private CountDownLatch latch;
 		private int bucketSize;
-		private int buildCount;
-		private int mod;
-		private IndexBuffer[] bufferArray;
 		private boolean byteValueFormat;
 		private HashSet<String> identitiesSet;
+		private int buildCount;
+		private int mod;
 		
 		public OrderHashIndexCreator(String hashId, ExtendBufferedWriter[] offsetWriters,
 				int[] indexLineRecords, Collection<String> files, int bUCKET_SIZE, int blockSize, CountDownLatch latch, String[] identities, boolean byteValueFormat) {
@@ -248,12 +246,10 @@ public class OrderSystemImpl implements OrderSystem {
 			this.offSetwriters = offsetWriters;
 			this.files = files;
 			this.bucketSize = bUCKET_SIZE;
-			this.indexLineRecords = indexLineRecords;
 			this.identitiesSet = new HashSet<>(Arrays.asList(identities));
+			this.byteValueFormat = byteValueFormat;
 			this.buildCount = 0;
 			this.mod = 524288;
-			this.bufferArray = new IndexBuffer[CommonConstants.INDEX_BUFFER_SIZE];
-			this.byteValueFormat = byteValueFormat; 
 		}
 
 		@Override
@@ -269,72 +265,45 @@ public class OrderSystemImpl implements OrderSystem {
 				long offset = 0L;
 				// 记录当前行的总长度
 				int length = 0;
-				int readLines;
 				try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.ORDERFILE_BLOCK_SIZE)) {
-					String line;
-					while (true) {
-						for (readLines = 0; readLines < CommonConstants.INDEX_BUFFER_SIZE; readLines++) {
-							line = reader.readLine();
-							if (line == null) {
-								break;
-							}
-							StringBuilder offSetMsg = new StringBuilder();
-							kvMap = StringUtils.createKVMapFromLineWithSet(line, CommonConstants.SPLITTER, this.identitiesSet);
-							length = line.getBytes().length;
-							
-							// orderId一定存在且为long
-							orderKV = kvMap.getKV(hashId);
-							index = indexFor(
-									hashWithDistrub(hashId.equals("orderid") ? orderKV.longValue : orderKV.rawValue),bucketSize);
-							
-							// 此处是rawValue还是longValue没区别
-							offSetMsg.append(orderKV.rawValue) ;
-							
-							offSetMsg.append(':');
-							// 对于query2 加入createtime
-							if (hashId.equals("buyerid")) {
-								offSetMsg.append(kvMap.getKV("createtime").longValue);
-								offSetMsg.append(' ');
-							}
-							offSetMsg.append(fileIndex);
+					String line = reader.readLine();
+					while (line != null) {
+						StringBuilder offSetMsg = new StringBuilder();
+						kvMap = StringUtils.createKVMapFromLineWithSet(line, CommonConstants.SPLITTER, this.identitiesSet);
+						length = line.getBytes().length;
+						
+						// orderId一定存在且为long
+						orderKV = kvMap.getKV(hashId);
+						index = indexFor(
+								hashWithDistrub(hashId.equals("orderid") ? orderKV.longValue : orderKV.rawValue),bucketSize);
+						
+						// 此处是rawValue还是longValue没区别
+						offSetMsg.append(orderKV.rawValue) ;
+						
+						offSetMsg.append(':');
+						// 对于query2 加入createtime
+						if (hashId.equals("buyerid")) {
+							offSetMsg.append(kvMap.getKV("createtime").longValue);
 							offSetMsg.append(' ');
-							offSetMsg.append(offset);
-							offSetMsg.append(' ');
-							offSetMsg.append(length);
-
-							
-							// 将对应index文件的行记录数++ 如果超过阈值则换行并清空
-
-							this.indexLineRecords[index]++;
-							if ( this.indexLineRecords[index] == CommonConstants.INDEX_LINE_RECORDS) {
-								offSetMsg.append('\n');
-								this.indexLineRecords[index] = 0;
-							}
-							this.bufferArray[readLines] = new IndexBuffer(index, offSetMsg.toString());
-							
-							
-							offset += (length + 1);
-							
-							 
-//							buildCount++;
-//							if ((buildCount & (mod - 1)) == 0) {
-//								System.out.println(hashId + "construct:" + buildCount);
-//							}
 						}
+						offSetMsg.append(fileIndex);
+						offSetMsg.append(' ');
+						offSetMsg.append(offset);
+						offSetMsg.append(' ');
+						offSetMsg.append(length);
 						
-						if (readLines == 0) {
-							break;
+						offset += (length + 1); 
+						buildCount++;
+						if ((buildCount & (mod - 1)) == 0) {
+							System.out.println(hashId + "construct:" + buildCount);
 						}
-						int i = 0;
 
-						while (i < readLines) {
-							
-							offsetBw = offSetwriters[(int)(bufferArray[i].getIndex())];
-							offsetBw.write(bufferArray[i].getLine());
-							i++;
-						}
+						offsetBw = offSetwriters[index];
+						offsetBw.write(offSetMsg.toString());
+						offsetBw.newLine();
+
 						
-						
+						line = reader.readLine();
 					}	
 					fileIndex++;
 					
@@ -396,7 +365,7 @@ public class OrderSystemImpl implements OrderSystem {
 						for(byte[] bytes : list) {
 							orderIndexWriter.write(bytes);
 							// buyer的有序索引中一个记录长度为24byte
-							offset += 24;
+							offset += 24L;
 						}
 					}
 				}
@@ -443,7 +412,7 @@ public class OrderSystemImpl implements OrderSystem {
 						for(byte[] bytes : list) {
 							orderIndexWriter.write(bytes);
 							// good的有序索引中一个记录长度为16byte
-							offset += 16;
+							offset += 16L;
 						}
 					}
 				}
@@ -515,10 +484,10 @@ public class OrderSystemImpl implements OrderSystem {
 							offset += (length + 1);
 							
 							
-//							buildCount++;
-//							if ((buildCount & (mod - 1)) == 0) {
-//								System.out.println(hashId + "construct:" + buildCount);
-//							}	
+							buildCount++;
+							if ((buildCount & (mod - 1)) == 0) {
+								System.out.println(hashId + "construct:" + buildCount);
+							}	
 							line = reader.readLine();
 					}	
 					fileIndex++;
