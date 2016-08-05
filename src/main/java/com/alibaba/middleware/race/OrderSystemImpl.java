@@ -413,7 +413,7 @@ public class OrderSystemImpl implements OrderSystem {
 					String indexFile = query3Path + File.separator + i + CommonConstants.INDEX_SUFFIX;
 					// 对每个good的记录进行group的map
 //					System.out.println(indexFile);
-					Map<String,List<byte[]>> groupedGoodOrders = new HashMap<>(8192, 1f);
+					Map<String,List<byte[]>> groupedGoodOrders = new HashMap<>(4096, 1f);
 					try (ExtendBufferedReader orderIndexReader = IOUtils.createReader(indexFile, CommonConstants.ORDERFILE_BLOCK_SIZE)) {
 						String line  = orderIndexReader.readLine();
 						while (line != null) {
@@ -424,7 +424,7 @@ public class OrderSystemImpl implements OrderSystem {
 							if (groupedGoodOrders.containsKey(goodId)) {
 								groupedGoodOrders.get(goodId).add(content);
 							} else {
-								List<byte[]> goodOrdersList = new ArrayList<>(50);
+								List<byte[]> goodOrdersList = new ArrayList<>(100);
 								goodOrdersList.add(content);
 								groupedGoodOrders.put(goodId, goodOrdersList);
 							}
