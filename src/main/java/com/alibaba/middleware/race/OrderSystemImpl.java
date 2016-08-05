@@ -317,9 +317,9 @@ public class OrderSystemImpl implements OrderSystem {
 							
 							 
 							buildCount++;
-//							if ((buildCount & (mod - 1)) == 0) {
-//								System.out.println(hashId + "construct:" + buildCount);
-//							}
+							if ((buildCount & (mod - 1)) == 0) {
+								System.out.println(hashId + "construct:" + buildCount);
+							}
 						}
 						
 						if (readLines == 0) {
@@ -516,9 +516,9 @@ public class OrderSystemImpl implements OrderSystem {
 							
 							
 							buildCount++;
-//							if ((buildCount & (mod - 1)) == 0) {
-//								System.out.println(hashId + "construct:" + buildCount);
-//							}	
+							if ((buildCount & (mod - 1)) == 0) {
+								System.out.println(hashId + "construct:" + buildCount);
+							}	
 							line = reader.readLine();
 					}	
 					fileIndex++;
