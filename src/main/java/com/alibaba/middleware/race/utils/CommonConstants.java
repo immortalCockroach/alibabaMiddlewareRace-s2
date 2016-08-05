@@ -17,9 +17,9 @@ public class CommonConstants {
 	// order文件被切割的份数 保持2^n
 	public static final int QUERY1_ORDER_SPLIT_SIZE = 4096;
 	
-	public static final int QUERY2_ORDER_SPLIT_SIZE = 1024;
+	public static final int QUERY2_ORDER_SPLIT_SIZE = 512;
 	
-	public static final int QUERY3_ORDER_SPLIT_SIZE = 1024;
+	public static final int QUERY3_ORDER_SPLIT_SIZE = 512;
 	
 	// 买家 商品文件切割份数
 	public static final int OTHER_SPLIT_SIZE = 1024;
