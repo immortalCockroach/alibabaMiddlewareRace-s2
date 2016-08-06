@@ -329,6 +329,7 @@ public class OrderSystemImpl implements OrderSystem {
 		}
 		private void buyerSeconderyIndex() {
 			// query3 4的文件按buyerid进行group
+			buyerMemoryIndexMap = new HashMap<>(8388608, 1f);
 			String orderedIndex = query2Path + File.separator + CommonConstants.INDEX_SUFFIX;
 			Long offset = 0L;
 			try (BufferedOutputStream orderIndexWriter = new BufferedOutputStream(new FileOutputStream(orderedIndex))) {
@@ -375,6 +376,7 @@ public class OrderSystemImpl implements OrderSystem {
 		}
 		private void goodSeconderyIndex() {
 			// query3 4的文件按goodid进行group
+			goodMemoryIndexMap = new HashMap<>(4194304, 1f);
 			String orderedIndex = query3Path + File.separator + CommonConstants.INDEX_SUFFIX;
 			Long offset = 0L;
 			try (BufferedOutputStream orderIndexWriter = new BufferedOutputStream(new FileOutputStream(orderedIndex))) {
@@ -605,17 +607,17 @@ public class OrderSystemImpl implements OrderSystem {
 //		query4Cache = new SimpleLRUCache<>(16384);
 		
 //		goodsCache = new SimpleLRUCache<>(65536);
-		if (!buyerGoodInMemory) {
-//			this.goodLineRecords = new int[CommonConstants.OTHER_SPLIT_SIZE];
-		} else {
-			this.goodMemoryIndexMap = new HashMap<>(4194304, 1f);
-		}
-//		buyersCache = new SimpleLRUCache<>(65536);
-		if (!buyerGoodInMemory) {
-//			this.buyerLineRecords = new int[CommonConstants.OTHER_SPLIT_SIZE];
-		}  else {
-			this.buyerMemoryIndexMap = new HashMap<>(8388608, 1f);
-		}
+//		if (!buyerGoodInMemory) {
+////			this.goodLineRecords = new int[CommonConstants.OTHER_SPLIT_SIZE];
+//		} else {
+//			this.goodMemoryIndexMap = new HashMap<>(4194304, 1f);
+//		}
+////		buyersCache = new SimpleLRUCache<>(65536);
+//		if (!buyerGoodInMemory) {
+////			this.buyerLineRecords = new int[CommonConstants.OTHER_SPLIT_SIZE];
+//		}  else {
+//			this.buyerMemoryIndexMap = new HashMap<>(8388608, 1f);
+//		}
 		isConstructed = false;
 		
 		query1Count = new AtomicInteger(0);
