@@ -268,7 +268,7 @@ public class OrderSystemImpl implements OrderSystem {
 				try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.ORDERFILE_BLOCK_SIZE)) {
 					String line = reader.readLine();
 					while (line != null) {
-						StringBuilder offSetMsg = new StringBuilder();
+						StringBuilder offSetMsg = new StringBuilder(50);
 						kvMap = StringUtils.createKVMapFromLineWithSet(line, CommonConstants.SPLITTER, this.identitiesSet);
 						length = line.getBytes().length;
 						
@@ -853,15 +853,15 @@ public class OrderSystemImpl implements OrderSystem {
 	}
 	
 	private int hashWithDistrub(Object k) {
-        int h = 0;
-        h ^= k.hashCode();
-
-        // This function ensures that hashCodes that differ only by
-        // constant multiples at each bit position have a bounded
-        // number of collisions (approximately 8 at default load factor).
-        h ^= (h >>> 20) ^ (h >>> 12);
-        return h ^ (h >>> 7) ^ (h >>> 4);
-//		return k.hashCode();
+//        int h = 0;
+//        h ^= k.hashCode();
+//
+//        // This function ensures that hashCodes that differ only by
+//        // constant multiples at each bit position have a bounded
+//        // number of collisions (approximately 8 at default load factor).
+//        h ^= (h >>> 20) ^ (h >>> 12);
+//        return h ^ (h >>> 7) ^ (h >>> 4);
+		return k.hashCode();
 	    
 	}
 	
