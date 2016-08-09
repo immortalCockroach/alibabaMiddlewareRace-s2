@@ -462,7 +462,7 @@ public class OrderSystemImpl implements OrderSystem {
 					String line = reader.readLine();
 					while (line != null) {
 //							StringBuilder offSetMsg = new StringBuilder();
-							kvMap = StringUtils.createKVMapFromLineWithSet(line, CommonConstants.SPLITTER, this.identitiesSet);
+							kvMap = StringUtils.createKVMapFromLineWithSet2(line, CommonConstants.SPLITTER, this.identitiesSet);
 							length = line.getBytes().length;
 							
 							// orderId一定存在且为long
