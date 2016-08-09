@@ -269,7 +269,7 @@ public class OrderSystemImpl implements OrderSystem {
 					String line = reader.readLine();
 					while (line != null) {
 						StringBuilder offSetMsg = new StringBuilder(50);
-						kvMap = StringUtils.createKVMapFromLineWithSet(line, CommonConstants.SPLITTER, this.identitiesSet);
+						kvMap = StringUtils.createKVMapFromLineWithSet2(line, CommonConstants.SPLITTER, this.identitiesSet);
 						length = line.getBytes().length;
 						
 						// orderId一定存在且为long
@@ -291,6 +291,7 @@ public class OrderSystemImpl implements OrderSystem {
 						offSetMsg.append(offset);
 						offSetMsg.append(' ');
 						offSetMsg.append(length);
+						offSetMsg.append('\n');
 						
 						offset += (length + 1); 
 						buildCount++;
@@ -300,7 +301,7 @@ public class OrderSystemImpl implements OrderSystem {
 
 						offsetBw = offSetwriters[index];
 						offsetBw.write(offSetMsg.toString());
-						offsetBw.newLine();
+//						offsetBw.newLine();
 
 						
 						line = reader.readLine();

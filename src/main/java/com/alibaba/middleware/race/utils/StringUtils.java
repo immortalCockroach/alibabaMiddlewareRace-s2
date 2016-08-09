@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import com.alibaba.middleware.race.OrderSystemImpl.KV;
 import com.alibaba.middleware.race.OrderSystemImpl.Row;
@@ -197,6 +198,42 @@ public class StringUtils {
 				size--;
 			}
 		}
+		return kvMap;
+	}
+	public static Row createKVMapFromLineWithSet2(String line, char splitch, HashSet<String> set) {
+		
+		int size = set.size();
+		int len = line.length();
+		Row kvMap = new Row();
+
+		int currentPosition = 0;
+		int start = 0;
+		int middle;
+		int end;
+//		String value;
+		char[] content = line.toCharArray();
+		while (currentPosition < len && size > 0) {
+			start = currentPosition;
+			while (currentPosition < len && content[currentPosition] != ':') {
+				currentPosition++;
+			}
+			middle = currentPosition;
+			
+			while (currentPosition < len && content[currentPosition] != splitch) {
+				currentPosition++;
+			}
+			end = currentPosition;
+			String key = new String(content,start, middle - start);
+			if (set.contains(key)) {
+//				kvMap.put(key, new String(content, middle + 1, end - middle));
+				KV kv = new KV(key, new String(content, middle + 1, end - middle - 1));
+				kvMap.put(kv.key(), kv);
+				size--;
+			}
+			currentPosition++;
+			
+		}
+
 		return kvMap;
 	}
 	
