@@ -5,7 +5,8 @@ import java.io.DataInputStream;
 import java.io.IOException;
 
 /**
- * 代表order的有序索引文件的结构
+ * 代表原始文件(order、buyer、good)的记录查找结构
+ * 根据index,offset,length定位到某个文件的一行记录
  * @author immortalCockRoach
  *
  */
