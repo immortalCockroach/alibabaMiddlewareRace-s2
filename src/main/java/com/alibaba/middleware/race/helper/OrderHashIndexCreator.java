@@ -20,7 +20,6 @@ import com.alibaba.middleware.race.utils.ExtendBufferedReader;
 import com.alibaba.middleware.race.utils.ExtendBufferedWriter;
 import com.alibaba.middleware.race.utils.HashUtils;
 import com.alibaba.middleware.race.utils.IOUtils;
-import com.alibaba.middleware.race.utils.MetaTuple;
 import com.alibaba.middleware.race.utils.StringUtils;
 
 /**
@@ -43,8 +42,9 @@ public class OrderHashIndexCreator implements Runnable {
 	private int buildCount;
 	private int mod;
 
-	public OrderHashIndexCreator(String hashId, String queryPath, ExtendBufferedWriter[] offsetWriters, Collection<String> files,
-			int bUCKET_SIZE, int blockSize, CountDownLatch latch, String[] identities, boolean byteValueFormat, IndexOperater operater) {
+	public OrderHashIndexCreator(String hashId, String queryPath, ExtendBufferedWriter[] offsetWriters,
+			Collection<String> files, int bUCKET_SIZE, int blockSize, CountDownLatch latch, String[] identities,
+			boolean byteValueFormat, IndexOperater operater) {
 		super();
 		this.latch = latch;
 		this.queryPath = queryPath;
@@ -72,21 +72,18 @@ public class OrderHashIndexCreator implements Runnable {
 			long offset = 0L;
 			// 记录当前行的总长度
 			int length = 0;
-			try (ExtendBufferedReader reader = IOUtils.createReader(orderFile,
-					CommonConstants.ORDERFILE_BLOCK_SIZE)) {
+			try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.ORDERFILE_BLOCK_SIZE)) {
 				String line = reader.readLine();
 				while (line != null) {
 					StringBuilder offSetMsg = new StringBuilder(50);
-					kvMap = StringUtils.createKVMapFromLineWithSet(line, CommonConstants.SPLITTER,
-							this.identitiesSet);
+					kvMap = StringUtils.createKVMapFromLineWithSet(line, CommonConstants.SPLITTER, this.identitiesSet);
 					length = line.getBytes().length;
 
 					// orderId一定存在且为long
 					orderKV = kvMap.getKV(hashId);
-					index = HashUtils
-							.indexFor(
-									HashUtils.hashWithDistrub(
-											hashId.equals("orderid") ? orderKV.getLongValue() : orderKV.valueAsString()),
+					index = HashUtils.indexFor(
+							HashUtils.hashWithDistrub(
+									hashId.equals("orderid") ? orderKV.getLongValue() : orderKV.valueAsString()),
 							bucketSize);
 
 					// 此处是rawValue还是longValue没区别
@@ -134,7 +131,7 @@ public class OrderHashIndexCreator implements Runnable {
 		}
 		this.latch.countDown();
 	}
-	
+
 	private void closeWriter() {
 		try {
 
@@ -149,8 +146,8 @@ public class OrderHashIndexCreator implements Runnable {
 
 	private void buyerSeconderyIndex() {
 		// query3 4的文件按buyerid进行group
-//		buyerMemoryIndexMap = new HashMap<>(8388608, 1f);
-		((BuyerIndexOperater)operater).createBuyerIndex();
+		// buyerMemoryIndexMap = new HashMap<>(8388608, 1f);
+		((BuyerIndexOperater) operater).createBuyerIndex();
 		String orderedIndex = queryPath + File.separator + CommonConstants.INDEX_SUFFIX;
 		Long offset = 0L;
 		try (BufferedOutputStream orderIndexWriter = new BufferedOutputStream(new FileOutputStream(orderedIndex))) {
@@ -183,8 +180,8 @@ public class OrderHashIndexCreator implements Runnable {
 					List<byte[]> list = e.getValue();
 					MetaTuple buyerTuple = new MetaTuple(offset, list.size());
 					// 内存二级索引 buyerid-tuple
-//					buyerMemoryIndexMap.put(e.getKey(), buyerTuple);
-					((BuyerIndexOperater)operater).addTupleToBuyerIndex(e.getKey(), buyerTuple);
+					// buyerMemoryIndexMap.put(e.getKey(), buyerTuple);
+					((BuyerIndexOperater) operater).addTupleToBuyerIndex(e.getKey(), buyerTuple);
 					// 挨个写入有序的索引文件
 					for (byte[] bytes : list) {
 						orderIndexWriter.write(bytes);
@@ -200,8 +197,8 @@ public class OrderHashIndexCreator implements Runnable {
 
 	private void goodSeconderyIndex() {
 		// query3 4的文件按goodid进行group
-//		goodMemoryIndexMap = new HashMap<>(4194304, 1f);
-		((GoodIndexOperater)operater).createGoodIndex();
+		// goodMemoryIndexMap = new HashMap<>(4194304, 1f);
+		((GoodIndexOperater) operater).createGoodIndex();
 		String orderedIndex = queryPath + File.separator + CommonConstants.INDEX_SUFFIX;
 		Long offset = 0L;
 		try (BufferedOutputStream orderIndexWriter = new BufferedOutputStream(new FileOutputStream(orderedIndex))) {
@@ -235,7 +232,7 @@ public class OrderHashIndexCreator implements Runnable {
 					List<byte[]> list = e.getValue();
 					MetaTuple goodTuple = new MetaTuple(offset, list.size());
 					// 内存二级索引 goodId-tuple
-					((GoodIndexOperater)operater).addTupleToGoodIndex(e.getKey(), goodTuple);
+					((GoodIndexOperater) operater).addTupleToGoodIndex(e.getKey(), goodTuple);
 					// 挨个写入有序的索引文件
 					for (byte[] bytes : list) {
 						orderIndexWriter.write(bytes);

@@ -16,7 +16,6 @@ import com.alibaba.middleware.race.ResultImpl;
 import com.alibaba.middleware.race.Row;
 import com.alibaba.middleware.race.OrderSystem.Result;
 import com.alibaba.middleware.race.utils.CommonConstants;
-import com.alibaba.middleware.race.utils.IndexFileTuple;
 import com.alibaba.middleware.race.utils.StringUtils;
 
 /**
@@ -76,22 +75,21 @@ public class JoinOne implements Iterator<OrderSystem.Result> {
 			// 已经Map包含这个Row了就跳过
 			if (!joinDataMap.containsKey(id)) {
 				if (joinId.equals("goodid")) {
-					joinDataIndexList.add(((GoodIndexOperater)operator).getGoodTupleByGoodId(id).getOriginalByte());
+					joinDataIndexList.add(((GoodIndexOperater) operator).getGoodTupleByGoodId(id).getOriginalByte());
 				} else {
-					joinDataIndexList.add(((BuyerIndexOperater)operator).getBuyerTupleByBuyerId(id).getOriginalByte());
+					joinDataIndexList.add(((BuyerIndexOperater) operator).getBuyerTupleByBuyerId(id).getOriginalByte());
 				}
 			}
 		}
 	}
 
 	/**
-	 * 根据group好的信息去原始的good buyer中查找记录
-	 * 由于线上测试时join相对于order文件的查找来说开销较小，索引没有使用线程池
+	 * 根据group好的信息去原始的good buyer中查找记录 由于线上测试时join相对于order文件的查找来说开销较小，索引没有使用线程池
 	 */
 	private void traverseOriginalFile() {
 		// 此时得到的joinDataIndexSet 为无重复的good/buyer的index信息
-		Map<Integer, PriorityQueue<IndexFileTuple>> originalDataAccessSequence = JoinGroupHelper.createOrderDataAccessSequence(
-				joinDataIndexList);
+		Map<Integer, PriorityQueue<IndexFileTuple>> originalDataAccessSequence = JoinGroupHelper
+				.createOrderDataAccessSequence(joinDataIndexList);
 		for (Map.Entry<Integer, PriorityQueue<IndexFileTuple>> e : originalDataAccessSequence.entrySet()) {
 			String file = null;
 			file = files.get(e.getKey());
@@ -139,7 +137,8 @@ public class JoinOne implements Iterator<OrderSystem.Result> {
 		}
 		// 不需要join的时候直接create
 		if (joinId == null) {
-			return ResultImpl.createResultRow(orderQueue.poll(), fixRow, null, JoinGroupHelper.createQueryKeys(queryKeys));
+			return ResultImpl.createResultRow(orderQueue.poll(), fixRow, null,
+					JoinGroupHelper.createQueryKeys(queryKeys));
 		} else {
 			// 需要join的时候从Map中拉取
 			Row orderRow = orderQueue.poll();

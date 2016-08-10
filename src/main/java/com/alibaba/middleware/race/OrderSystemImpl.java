@@ -22,8 +22,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.alibaba.middleware.race.helper.BuyerIndexOperater;
 import com.alibaba.middleware.race.helper.GoodIndexOperater;
+import com.alibaba.middleware.race.helper.IndexFileTuple;
 import com.alibaba.middleware.race.helper.JoinGroupHelper;
 import com.alibaba.middleware.race.helper.JoinOne;
+import com.alibaba.middleware.race.helper.MetaTuple;
 import com.alibaba.middleware.race.helper.OrderDataSearchCallable;
 import com.alibaba.middleware.race.helper.OrderHashIndexCreator;
 import com.alibaba.middleware.race.helper.OtherHashIndexCreator;
@@ -32,8 +34,6 @@ import com.alibaba.middleware.race.utils.ExtendBufferedReader;
 import com.alibaba.middleware.race.utils.ExtendBufferedWriter;
 import com.alibaba.middleware.race.utils.HashUtils;
 import com.alibaba.middleware.race.utils.IOUtils;
-import com.alibaba.middleware.race.utils.IndexFileTuple;
-import com.alibaba.middleware.race.utils.MetaTuple;
 import com.alibaba.middleware.race.utils.StringUtils;
 
 /**

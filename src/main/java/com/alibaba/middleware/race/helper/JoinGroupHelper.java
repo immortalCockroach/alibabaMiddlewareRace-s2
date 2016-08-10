@@ -7,8 +7,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.PriorityQueue;
 
-import com.alibaba.middleware.race.utils.IndexFileTuple;
-
 public class JoinGroupHelper {
 
 	/**
@@ -57,6 +55,7 @@ public class JoinGroupHelper {
 	/**
 	 * 根据需要访问的原始文件(包括order、buyer和good)和其中每条记录的offset分别进行group和排序
 	 * 减少原始文件的打开和关闭，对offset排序后尽量多利用系统的IO缓冲区
+	 * 
 	 * @param offsetRecords
 	 * @return
 	 */

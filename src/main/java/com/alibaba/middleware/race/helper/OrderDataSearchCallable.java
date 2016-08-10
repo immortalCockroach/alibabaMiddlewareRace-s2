@@ -8,11 +8,11 @@ import java.util.concurrent.Callable;
 
 import com.alibaba.middleware.race.Row;
 import com.alibaba.middleware.race.utils.CommonConstants;
-import com.alibaba.middleware.race.utils.IndexFileTuple;
 import com.alibaba.middleware.race.utils.StringUtils;
 
 /**
  * order线程池查询的Callable类，负责查询一个order文件中的多条记录
+ * 
  * @author immortalCockRoach
  *
  */
@@ -22,7 +22,8 @@ public class OrderDataSearchCallable implements Callable<List<Row>> {
 	private PriorityQueue<IndexFileTuple> sequenceQueue;
 	private List<String> orderFiles;
 
-	public OrderDataSearchCallable(int fileIndex, PriorityQueue<IndexFileTuple> sequenceQueue, List<String> orderFiles) {
+	public OrderDataSearchCallable(int fileIndex, PriorityQueue<IndexFileTuple> sequenceQueue,
+			List<String> orderFiles) {
 		this.fileIndex = fileIndex;
 		this.sequenceQueue = sequenceQueue;
 		this.orderFiles = orderFiles;

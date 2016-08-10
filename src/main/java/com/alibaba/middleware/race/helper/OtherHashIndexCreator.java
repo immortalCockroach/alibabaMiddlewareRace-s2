@@ -10,7 +10,6 @@ import com.alibaba.middleware.race.Row;
 import com.alibaba.middleware.race.utils.CommonConstants;
 import com.alibaba.middleware.race.utils.ExtendBufferedReader;
 import com.alibaba.middleware.race.utils.IOUtils;
-import com.alibaba.middleware.race.utils.MetaTuple;
 import com.alibaba.middleware.race.utils.StringUtils;
 
 /**
@@ -28,8 +27,8 @@ public class OtherHashIndexCreator implements Runnable {
 	private int buildCount;
 	private int mod;
 
-	public OtherHashIndexCreator(String hashId, Collection<String> files, CountDownLatch latch,
-			String[] identities, IndexOperater operater) {
+	public OtherHashIndexCreator(String hashId, Collection<String> files, CountDownLatch latch, String[] identities,
+			IndexOperater operater) {
 		super();
 		this.hashId = hashId;
 		this.files = files;
@@ -52,24 +51,22 @@ public class OtherHashIndexCreator implements Runnable {
 			String id;
 			// 记录当前行的总长度
 			int length = 0;
-			try (ExtendBufferedReader reader = IOUtils.createReader(orderFile,
-					CommonConstants.OTHERFILE_BLOCK_SIZE)) {
+			try (ExtendBufferedReader reader = IOUtils.createReader(orderFile, CommonConstants.OTHERFILE_BLOCK_SIZE)) {
 				String line = reader.readLine();
 				while (line != null) {
 					// StringBuilder offSetMsg = new StringBuilder();
-					kvMap = StringUtils.createKVMapFromLineWithSet(line, CommonConstants.SPLITTER,
-							this.identitiesSet);
+					kvMap = StringUtils.createKVMapFromLineWithSet(line, CommonConstants.SPLITTER, this.identitiesSet);
 					length = line.getBytes().length;
 
 					// orderId一定存在且为long
 					id = kvMap.getKV(hashId).valueAsString();
 					if (hashId.equals("goodid")) {
-						MetaTuple goodTuple = ((GoodIndexOperater)operator).getGoodTupleByGoodId(id);
+						MetaTuple goodTuple = ((GoodIndexOperater) operator).getGoodTupleByGoodId(id);
 						goodTuple.setFileIndex(fileIndex);
 						goodTuple.setOriginalOffset(offset);
 						goodTuple.setOriginalLength(length);
 					} else {
-						MetaTuple buyerTuple = ((BuyerIndexOperater)operator).getBuyerTupleByBuyerId(id);
+						MetaTuple buyerTuple = ((BuyerIndexOperater) operator).getBuyerTupleByBuyerId(id);
 						buyerTuple.setFileIndex(fileIndex);
 						buyerTuple.setOriginalOffset(offset);
 						buyerTuple.setOriginalLength(length);
