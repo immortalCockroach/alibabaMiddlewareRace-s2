@@ -22,7 +22,8 @@ public class ResultImpl implements Result {
 	}
 	
 	/**
-	 * 根据order good buyer来构造结果 buyer和good可以为null,相当于不join
+	 * 根据order good buyer来构造结果
+	 * buyer和good可以为null,相当于不join
 	 * 此处buyer和good可以为null是为了查询join的优化
 	 * @param orderData
 	 * @param buyerData

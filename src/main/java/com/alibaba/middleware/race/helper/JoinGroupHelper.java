@@ -55,6 +55,7 @@ public class JoinGroupHelper {
 	/**
 	 * 根据需要访问的原始文件(包括order、buyer和good)和其中每条记录的offset分别进行group和排序
 	 * 减少原始文件的打开和关闭，对offset排序后尽量多利用系统的IO缓冲区
+	 * 在query2 3 4读取order原始文件和join时都使用
 	 * 
 	 * @param offsetRecords
 	 * @return
