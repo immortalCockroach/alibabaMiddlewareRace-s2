@@ -3,17 +3,10 @@ package com.alibaba.middleware.race.utils;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
-import com.alibaba.middleware.race.OrderSystemImpl.KV;
-import com.alibaba.middleware.race.OrderSystemImpl.Row;
+import com.alibaba.middleware.race.KV;
+import com.alibaba.middleware.race.Row;
 
 /**
  * Utils of string
@@ -64,7 +57,7 @@ public class StringUtils {
 		return kvMap;
 	}
 	
-	public static Row createKVMapFromLineWithSet2(String line, char splitch, HashSet<String> set) {
+	public static Row createKVMapFromLineWithSet(String line, char splitch, Set<String> set) {
 		
 		int size = set.size();
 		int len = line.length();

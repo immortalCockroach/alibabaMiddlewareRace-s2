@@ -3,6 +3,11 @@ package com.alibaba.middleware.race.utils;
 import java.io.IOException;
 import java.io.Writer;
 
+/**
+ * BufferedWriter的优化类，去掉了write和flush方法中的synchronized
+ * @author immortalCockRoach
+ *
+ */
 public class ExtendBufferedWriter extends Writer {
 
     private Writer out;

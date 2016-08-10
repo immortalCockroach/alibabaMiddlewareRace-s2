@@ -3,6 +3,11 @@ package com.alibaba.middleware.race.utils;
 import java.io.IOException;
 import java.io.Reader;
 
+/**
+ * BufferedReader的优化类，去掉了readLine方法中的synchronized,并修改保存结果的类为StringBuilder
+ * @author immortalCockRoach
+ *
+ */
 public class ExtendBufferedReader extends Reader{
 
     private Reader in;
