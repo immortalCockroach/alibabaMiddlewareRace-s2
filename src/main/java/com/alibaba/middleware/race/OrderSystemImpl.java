@@ -29,10 +29,8 @@ import com.alibaba.middleware.race.utils.CommonConstants;
 import com.alibaba.middleware.race.utils.ExtendBufferedReader;
 import com.alibaba.middleware.race.utils.ExtendBufferedWriter;
 import com.alibaba.middleware.race.utils.IOUtils;
-import com.alibaba.middleware.race.utils.IndexBuffer;
 import com.alibaba.middleware.race.utils.IndexFileTuple;
 import com.alibaba.middleware.race.utils.MetaTuple;
-import com.alibaba.middleware.race.utils.SimpleLRUCache;
 import com.alibaba.middleware.race.utils.StringUtils;
 
 /**
@@ -53,59 +51,25 @@ public class OrderSystemImpl implements OrderSystem {
 	private String query1Path;
 	private String query2Path;
 	private String query3Path;
-//	private String query4Path;
-	
-	private String buyersPath;
-	private String goodsPath;
-	
+
 	private ExecutorService multiQueryPool2;
 	private ExecutorService multiQueryPool3;
 	private ExecutorService multiQueryPool4;
 	
-	/**
-	 * 这个数据记录每个文件的行当前写入的record数量，当大于INDEX_LINE_RECORDS的时候，换行
-	 */
-	private int[] query1LineRecords;
 	private ExtendBufferedWriter[] query1IndexWriters;
-//	private SimpleLRUCache<Long, String> query1Cache;
-	
-	
-	private int[] query2LineRecords;
 	private ExtendBufferedWriter[] query2IndexWriters;
-//	private SimpleLRUCache<String, Map<Long,String>> query2Cache;
-//	private SimpleLRUCache<String, List<Long>> query2Cache;
-	
-	
-	private int[] query3LineRecords;
 	private ExtendBufferedWriter[] query3IndexWriters;
-//	private SimpleLRUCache<String, List<String>> query3Cache;
-//	private BufferedWriter[] query4Writers;
-//	private SimpleLRUCache<String, List<String>> query4Cache;
-	
-//	private int[] buyerLineRecords;
-	private ExtendBufferedWriter[] buyersIndexWriters;
+
 	private HashMap<String,MetaTuple> buyerMemoryIndexMap;
-//	private SimpleLRUCache<String, MetaTuple> buyersCache;
-	
-//	private int[] goodLineRecords;
-	private ExtendBufferedWriter[] goodsIndexWriters;
-//	private SimpleLRUCache<String, String> goodsCache;
 	private HashMap<String,MetaTuple> goodMemoryIndexMap; 
+	
 	private AtomicInteger query1Count;
 	private AtomicInteger query2Count;
 	private AtomicInteger query3Count;
 	private AtomicInteger query4Count;
 	
-//	private AtomicInteger q1CacheHit;
-//	private AtomicInteger q2CacheHit;
-//	private AtomicInteger q3CacheHit;
-//	private AtomicInteger q4CacheHit;
-//	private AtomicInteger buyerCacheHit;
-//	private AtomicInteger goodCacheHit;
-	
 	private volatile boolean isConstructed;
 	
-	private boolean buyerGoodInMemory;
 
 	/**
 	 * KeyValue的实现类，代表一行中的某个key-value对 raw数据采用String来存储 之后根据情况返回对应的long获得double
@@ -238,8 +202,7 @@ public class OrderSystemImpl implements OrderSystem {
 		private int buildCount;
 		private int mod;
 		
-		public OrderHashIndexCreator(String hashId, ExtendBufferedWriter[] offsetWriters,
-				int[] indexLineRecords, Collection<String> files, int bUCKET_SIZE, int blockSize, CountDownLatch latch, String[] identities, boolean byteValueFormat) {
+		public OrderHashIndexCreator(String hashId, ExtendBufferedWriter[] offsetWriters, Collection<String> files, int bUCKET_SIZE, int blockSize, CountDownLatch latch, String[] identities, boolean byteValueFormat) {
 			super();
 			this.latch = latch;
 			this.hashId = hashId;
@@ -593,45 +556,13 @@ public class OrderSystemImpl implements OrderSystem {
 	 * 根据参数新建新建文件 目录等操作
 	 */
 	public OrderSystemImpl() {
-//		query1Lock = new ReentrantLock();
-//		query2Lock = new ReentrantLock();
-//		query3Lock = new ReentrantLock();
-//		query4Lock = new ReentrantLock();
-//		query1Cache = new SimpleLRUCache<>(32768);
-		this.buyerGoodInMemory = true;
 		
-		this.query1LineRecords = new int[CommonConstants.QUERY1_ORDER_SPLIT_SIZE];
-//		query2Cache = new SimpleLRUCache<>(16384);
-		this.query2LineRecords = new int[CommonConstants.QUERY2_ORDER_SPLIT_SIZE];
-//		query3Cache = new SimpleLRUCache<>(16384);
-		this.query3LineRecords = new int[CommonConstants.QUERY3_ORDER_SPLIT_SIZE];
-//		query4Cache = new SimpleLRUCache<>(16384);
-		
-//		goodsCache = new SimpleLRUCache<>(65536);
-//		if (!buyerGoodInMemory) {
-////			this.goodLineRecords = new int[CommonConstants.OTHER_SPLIT_SIZE];
-//		} else {
-//			this.goodMemoryIndexMap = new HashMap<>(4194304, 1f);
-//		}
-////		buyersCache = new SimpleLRUCache<>(65536);
-//		if (!buyerGoodInMemory) {
-////			this.buyerLineRecords = new int[CommonConstants.OTHER_SPLIT_SIZE];
-//		}  else {
-//			this.buyerMemoryIndexMap = new HashMap<>(8388608, 1f);
-//		}
 		isConstructed = false;
 		
 		query1Count = new AtomicInteger(0);
 		query2Count = new AtomicInteger(0);
 		query3Count = new AtomicInteger(0);
 		query4Count = new AtomicInteger(0);
-		
-//		q1CacheHit = new AtomicInteger(0);
-////		q2CacheHit = new AtomicInteger(0);
-//		q3CacheHit = new AtomicInteger(0);
-//		q4CacheHit = new AtomicInteger(0);
-//		buyerCacheHit = new AtomicInteger(0);
-//		goodCacheHit = new AtomicInteger(0);
 		
 		multiQueryPool2 = Executors.newFixedThreadPool(8);
 		multiQueryPool3 = Executors.newFixedThreadPool(8);
@@ -824,11 +755,11 @@ public class OrderSystemImpl implements OrderSystem {
 	private void constructHashIndex() {
 		// 5个线程各自完成之后 该函数才能返回
 		CountDownLatch latch = new CountDownLatch(3);
-		new Thread(new OrderHashIndexCreator("orderid", query1IndexWriters, query1LineRecords,orderFiles, CommonConstants.QUERY1_ORDER_SPLIT_SIZE,
+		new Thread(new OrderHashIndexCreator("orderid", query1IndexWriters,orderFiles, CommonConstants.QUERY1_ORDER_SPLIT_SIZE,
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch,new String[]{"orderid"}, false)).start();
-		new Thread(new OrderHashIndexCreator("buyerid", query2IndexWriters, query2LineRecords, orderFiles, CommonConstants.QUERY2_ORDER_SPLIT_SIZE,
+		new Thread(new OrderHashIndexCreator("buyerid", query2IndexWriters, orderFiles, CommonConstants.QUERY2_ORDER_SPLIT_SIZE,
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch,new String[]{"buyerid","createtime"}, true)).start();
-		new Thread(new OrderHashIndexCreator("goodid", query3IndexWriters, query3LineRecords ,orderFiles, CommonConstants.QUERY3_ORDER_SPLIT_SIZE,
+		new Thread(new OrderHashIndexCreator("goodid", query3IndexWriters, orderFiles, CommonConstants.QUERY3_ORDER_SPLIT_SIZE,
 				CommonConstants.ORDERFILE_BLOCK_SIZE, latch, new String[]{"goodid"}, true)).start();
 		// new Thread(new HashIndexCreator("goodid", query4Writers, orderFiles,
 		// CommonConstants.ORDER_SPLIT_SIZE,latch)).start();
@@ -913,42 +844,6 @@ public class OrderSystemImpl implements OrderSystem {
 			}
 		}
 
-//		this.query4Writers = new BufferedWriter[CommonConstants.ORDER_SPLIT_SIZE];
-//		for (int i = 0; i < CommonConstants.ORDER_SPLIT_SIZE; i++) {
-//			try {
-//				query4Writers[i] = IOUtils.createWriter(this.query4Path + File.separator + i);
-//			} catch (IOException e) {
-//
-//			}
-//		}
-		if (!buyerGoodInMemory) {
-			this.buyersIndexWriters = new ExtendBufferedWriter[CommonConstants.OTHER_SPLIT_SIZE];
-			for (int i = 0; i < CommonConstants.OTHER_SPLIT_SIZE; i++) {
-				try {
-					String file = this.buyersPath + File.separator + i+ CommonConstants.INDEX_SUFFIX;
-					RandomAccessFile ran = new RandomAccessFile(file, "rw");
-					ran.setLength(1024 * 1024 * 10);
-					ran.close();
-					buyersIndexWriters[i] = IOUtils.createWriter(file, CommonConstants.INDEX_BLOCK_SIZE);
-				} catch (IOException e) {
-	
-				}
-			}
-		}
-		if (!buyerGoodInMemory) {	
-			this.goodsIndexWriters = new ExtendBufferedWriter[CommonConstants.OTHER_SPLIT_SIZE];
-			for (int i = 0; i < CommonConstants.OTHER_SPLIT_SIZE; i++) {
-				try {
-					String file = this.goodsPath + File.separator + i + CommonConstants.INDEX_SUFFIX;
-					RandomAccessFile ran = new RandomAccessFile(file, "rw");
-					ran.setLength(1024 * 1024 * 10);
-					ran.close();
-					goodsIndexWriters[i] = IOUtils.createWriter(file, CommonConstants.INDEX_BLOCK_SIZE);
-				} catch (IOException e) {
-	
-				}
-			}
-		}
 
 	}
 	
@@ -986,29 +881,6 @@ public class OrderSystemImpl implements OrderSystem {
 		}
 		storeIndex++;
 		storeIndex %= len;
-
-//		this.query4Path = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.QUERY4_PREFIX;
-//		File query4File = new File(query4Path);
-//		if (!query4File.exists()) {
-//			query4File.mkdirs();
-//		}
-//		storeIndex++;
-//		storeIndex %= len;
-		if (!buyerGoodInMemory) {
-			this.buyersPath = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.BUYERS_PREFIX;
-			File buyersFile = new File(buyersPath);
-			if (!buyersFile.exists()) {
-				buyersFile.mkdirs();
-			}
-			storeIndex++;
-			storeIndex %= len;
-			System.out.println(storeFoldersList.get(storeIndex)+",index:"+storeIndex);
-			this.goodsPath = storeFoldersList.get(storeIndex) + File.separator + CommonConstants.GOODS_PREFIX;
-			File goodsFile = new File(goodsPath);
-			if (!goodsFile.exists()) {
-				goodsFile.mkdirs();
-			}
-		}
 	}
 
 	public Result queryOrder(long orderId, Collection<String> keys) {
