@@ -90,7 +90,7 @@ public class JoinOne implements Iterator<OrderSystem.Result> {
 	private void traverseOriginalFile() {
 		// 此时得到的joinDataIndexSet 为无重复的good/buyer的index信息
 		Map<Integer, PriorityQueue<IndexFileTuple>> originalDataAccessSequence = JoinGroupHelper
-				.createOrderDataAccessSequence(joinDataIndexList);
+				.createDataAccessSequence(joinDataIndexList);
 		for (Map.Entry<Integer, PriorityQueue<IndexFileTuple>> e : originalDataAccessSequence.entrySet()) {
 			String file = null;
 			file = files.get(e.getKey());

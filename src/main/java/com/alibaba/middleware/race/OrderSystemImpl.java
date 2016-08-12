@@ -462,7 +462,7 @@ public class OrderSystemImpl implements OrderSystem, BuyerIndexOperater, GoodInd
 		}
 		if (buyerOrderList.size() > 0) {
 			Map<Integer, PriorityQueue<IndexFileTuple>> buyerOrderAccessSequence = JoinGroupHelper
-					.createOrderDataAccessSequence(buyerOrderList);
+					.createDataAccessSequence(buyerOrderList);
 			List<Future<List<Row>>> result = new ArrayList<>();
 			for (Map.Entry<Integer, PriorityQueue<IndexFileTuple>> e : buyerOrderAccessSequence.entrySet()) {
 
@@ -528,7 +528,7 @@ public class OrderSystemImpl implements OrderSystem, BuyerIndexOperater, GoodInd
 		}
 		if (offsetRecords.size() > 0) {
 			Map<Integer, PriorityQueue<IndexFileTuple>> buyerOrderAccessSequence = JoinGroupHelper
-					.createOrderDataAccessSequence(offsetRecords);
+					.createDataAccessSequence(offsetRecords);
 			List<Future<List<Row>>> result = new ArrayList<>();
 			for (Map.Entry<Integer, PriorityQueue<IndexFileTuple>> e : buyerOrderAccessSequence.entrySet()) {
 
@@ -610,7 +610,7 @@ public class OrderSystemImpl implements OrderSystem, BuyerIndexOperater, GoodInd
 
 		if (offsetRecords.size() > 0) {
 			Map<Integer, PriorityQueue<IndexFileTuple>> buyerOrderAccessSequence = JoinGroupHelper
-					.createOrderDataAccessSequence(offsetRecords);
+					.createDataAccessSequence(offsetRecords);
 			List<Future<List<Row>>> result = new ArrayList<>();
 			for (Map.Entry<Integer, PriorityQueue<IndexFileTuple>> e : buyerOrderAccessSequence.entrySet()) {
 

@@ -60,7 +60,7 @@ public class JoinGroupHelper {
 	 * @param offsetRecords
 	 * @return
 	 */
-	public static Map<Integer, PriorityQueue<IndexFileTuple>> createOrderDataAccessSequence(
+	public static Map<Integer, PriorityQueue<IndexFileTuple>> createDataAccessSequence(
 			Collection<byte[]> offsetRecords) {
 		Map<Integer, PriorityQueue<IndexFileTuple>> result = new HashMap<>(64);
 		// 对原始记录进行按文件group,文件内按offset排序
