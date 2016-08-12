@@ -32,15 +32,15 @@
 
 * 索引建立优化
 
-  1. 3个线程同时建立3个order索引(查询3,4的索引一致)，并将索引分别写到3个磁盘上，这样避免多线程访问一个磁盘可能带来的磁头寻道的开销。
-  2. order索引建立完毕之后再初始化内存map并进行一级索引group以及buyer、good索引的建立，防止一开始就占用了内存导致的IO性能降低。
-  3. 建立索引时避免使用`String.split()`进行切割，这样会导致大量的无用切割和复制，具体优化的方法可以参考`StringUtils.createKVMapFromLineWithSet()`。
-  4. 由于buyer和good的数目已已知，因此内存map初始化的时候可以直接设置大小，并设置`loadFactor`为1f，如`goodMemoryIndexMap = new HashMap<>(4194304, 1f)`，这样可以防止map不断扩容带来的rehash开销。
+1. 3个线程同时建立3个order索引(查询3,4的索引一致)，并将索引分别写到3个磁盘上，这样避免多线程访问一个磁盘可能带来的磁头寻道的开销。
+2. order索引建立完毕之后再初始化内存map并进行一级索引group以及buyer、good索引的建立，防止一开始就占用了内存导致的IO性能降低。
+3. 建立索引时避免使用`String.split()`进行切割，这样会导致大量的无用切割和复制，具体优化的方法可以参考`StringUtils.createKVMapFromLineWithSet()`。
+4. 由于buyer和good的数目已已知，因此内存map初始化的时候可以直接设置大小，并设置`loadFactor`为1f，如`goodMemoryIndexMap = new HashMap<>(4194304, 1f)`，这样可以防止map不断扩容带来的rehash开销。
 
 * 查询优化 
 
-  1. 查询2、3、4和join都需要读多条原始文件的数据，而这些数据可能有的是在同一个文件中的，而有的记录可能靠得比较近，如果每条记录都单独打开文件并读取的话会带来不必要的开销，并且也可能无法利用系统的IO缓冲区。此处的优化是读取原始文件时，**将同一个原始文件的索引信息聚在一起，并按照记录的offset排序**，这样能最大程度的减少不必要的IO开销并重复利用系统IO缓冲区。具体可以参考`JoinGroupHelper.createDataAccessSequence()`
-  2. 比赛提供的是8核CPU，所以查询时可以利用多核的优势。由于在读取order原始数据的时候可能涉及到多个文件，因此将一个文件的读取作为一个`Callable`传递给**线程池**，此处采用的是fixed的线程池，查询2、3、4各有一个`corePoolSize`为8的线程池。具体的`Callable`实现类为`OrderDataSearchCallable`。虽然Join操作也可以使用线程池，但是线上测试的结果显示join时间占总时间较小，所以没有采用。
-  3. Join优化1(这里以查询2为例，查询3、4同理):查询一个buyer在一个时间段内的所有订单并join时，需要join的buyer信息是一定的，因此对应的buyer信息只需要查询一次即可。
-  4. Join优化2:由于**某些字段只会在某些文件中出现**(如price字段只会在good原始文件中出现)，因此对于查询3、4，如果查询的key只有在good或者order中出现(good只需要join一次，而order不需要join)，那么就不需要join buyer信息。具体的字段信息判断在`JoinGroupHelper.getKeyJoin()`中。
-  5. 查询4的专用优化:查询4是根据goodid去查找所有order信息然后join，最后对某一个字段求和。如果这个字段信息只有在good文件中才会出现，那么只需要根据内存map的信息去good原始文件中获得这个字段的值（如果是long或者double类型的话），然后从内存map中获得这个goodid对应的order的订单数量(直接取map中的**count**值)，直接相乘返回即可(因为join的good信息是一样的，所以可以直接相乘)。这部分可以参考查询4的代码:`OrderSystemImpl.sumOrdersByGood()`
+1. 查询2、3、4和join都需要读多条原始文件的数据，而这些数据可能有的是在同一个文件中的，而有的记录可能靠得比较近，如果每条记录都单独打开文件并读取的话会带来不必要的开销，并且也可能无法利用系统的IO缓冲区。此处的优化是读取原始文件时，**将同一个原始文件的索引信息聚在一起，并按照记录的offset排序**，这样能最大程度的减少不必要的IO开销并重复利用系统IO缓冲区。具体可以参考`JoinGroupHelper.createDataAccessSequence()`
+2. 比赛提供的是8核CPU，所以查询时可以利用多核的优势。由于在读取order原始数据的时候可能涉及到多个文件，因此将一个文件的读取作为一个`Callable`传递给**线程池**，此处采用的是fixed的线程池，查询2、3、4各有一个`corePoolSize`为8的线程池。具体的`Callable`实现类为`OrderDataSearchCallable`。虽然Join操作也可以使用线程池，但是线上测试的结果显示join时间占总时间较小，所以没有采用。
+3. Join优化1(这里以查询2为例，查询3、4同理):查询一个buyer在一个时间段内的所有订单并join时，需要join的buyer信息是一定的，因此对应的buyer信息只需要查询一次即可。
+4. Join优化2:由于**某些字段只会在某些文件中出现**(如price字段只会在good原始文件中出现)，因此对于查询3、4，如果查询的key只有在good或者order中出现(good只需要join一次，而order不需要join)，那么就不需要join buyer信息。具体的字段信息判断在`JoinGroupHelper.getKeyJoin()`中。
+5. 查询4的专用优化:查询4是根据goodid去查找所有order信息然后join，最后对某一个字段求和。如果这个字段信息只有在good文件中才会出现，那么只需要根据内存map的信息去good原始文件中获得这个字段的值（如果是long或者double类型的话），然后从内存map中获得这个goodid对应的order的订单数量(直接取map中的**count**值)，直接相乘返回即可(因为join的good信息是一样的，所以可以直接相乘)。这部分可以参考查询4的代码:`OrderSystemImpl.sumOrdersByGood()`
